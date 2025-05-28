@@ -10,7 +10,6 @@ import type { FileData, WizardData } from "@/components/wizard"
 import { Upload, RefreshCw, ArrowLeft, ArrowRight, Loader2, FileIcon as FilePresentation } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Card, CardContent } from "@/components/ui/card"
-import { toast } from "@/components/ui/use-toast"
 
 // Empty initial files array - we'll load files dynamically
 const initialDocsFiles: FileData[] = []
@@ -27,12 +26,23 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
   const [isUploading, setIsUploading] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [uploadSuccess, setUploadSuccess] = useState(false)
   const [progress, setProgress] = useState(0)
 
   // Simulate reading files from docs directory on component mount and refresh
   useEffect(() => {
     loadFilesFromDocs()
   }, [])
+
+  // Reset upload success message after 3 seconds
+  useEffect(() => {
+    if (uploadSuccess) {
+      const timer = setTimeout(() => {
+        setUploadSuccess(false)
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [uploadSuccess])
 
   const loadFilesFromDocs = () => {
     setIsLoading(true)
@@ -68,17 +78,14 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
     // Check if file is a PPTX
     const fileExtension = file.name.split(".").pop()?.toLowerCase()
     if (fileExtension !== "pptx") {
-      toast({
-        title: "Invalid file format",
-        description: "Only PPTX files are allowed",
-        variant: "destructive",
-      })
+      alert("Only PPTX files are allowed")
       // Reset the file input
       e.target.value = ""
       return
     }
 
     setIsUploading(true)
+    setUploadSuccess(false)
 
     // Simulate file upload delay
     setTimeout(() => {
@@ -96,14 +103,10 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
         uploadedFiles: [...prev.uploadedFiles, newFile],
       }))
       setIsUploading(false)
+      setUploadSuccess(true)
 
       // Reset the file input
       e.target.value = ""
-
-      toast({
-        title: "File uploaded",
-        description: `${file.name} has been uploaded to the docs folder`,
-      })
     }, 1500)
   }
 
@@ -159,20 +162,9 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
             <div className="flex flex-col items-center justify-center h-full p-8 text-center">
               <FilePresentation className="h-12 w-12 text-muted-foreground mb-4" />
               <h4 className="text-lg font-medium mb-2">No documents found</h4>
-              <p className="text-sm text-muted-foreground mb-4">Upload a PPTX file to get started</p>
-              <Button variant="outline" className="flex items-center gap-2" asChild>
-                <label className="cursor-pointer">
-                  <Upload className="h-4 w-4" />
-                  Upload Document
-                  <input
-                    type="file"
-                    className="hidden"
-                    onChange={handleFileUpload}
-                    disabled={isUploading}
-                    accept=".pptx"
-                  />
-                </label>
-              </Button>
+              <p className="text-sm text-muted-foreground">
+                Use the Upload Document button below to add PPTX files to the docs folder
+              </p>
             </div>
           ) : (
             <div className="p-4 space-y-2">
@@ -218,7 +210,12 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
           {isUploading && (
             <div className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
-              <p className="text-sm text-muted-foreground">Uploading to docs folder...</p>
+              <p className="text-sm text-muted-foreground">Uploading...</p>
+            </div>
+          )}
+          {uploadSuccess && (
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-green-600">Document Uploaded</p>
             </div>
           )}
         </div>
