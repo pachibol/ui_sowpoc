@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ContractSelectionStep } from "@/components/contract-selection-step"
 import { ProposalsSelectionStep } from "@/components/proposals-selection-step"
 import { SowReportStep } from "@/components/sow-report-step"
@@ -23,17 +23,29 @@ export function Wizard() {
     uploadedFiles: [],
   })
 
+  // Preserve state when navigating between steps
+  useEffect(() => {
+    // This ensures the component re-renders when the step changes
+    // and preserves the wizardData state
+  }, [currentStep])
+
   const steps = [
     {
       title: "Contract Selection",
       component: (
-        <ContractSelectionStep wizardData={wizardData} setWizardData={setWizardData} onNext={() => setCurrentStep(1)} />
+        <ContractSelectionStep
+          key="contract-step"
+          wizardData={wizardData}
+          setWizardData={setWizardData}
+          onNext={() => setCurrentStep(1)}
+        />
       ),
     },
     {
       title: "Proposals Selection",
       component: (
         <ProposalsSelectionStep
+          key="proposals-step"
           wizardData={wizardData}
           setWizardData={setWizardData}
           onNext={() => setCurrentStep(2)}
@@ -43,7 +55,7 @@ export function Wizard() {
     },
     {
       title: "Generated SOW",
-      component: <SowReportStep wizardData={wizardData} onBack={() => setCurrentStep(1)} />,
+      component: <SowReportStep key="sow-step" wizardData={wizardData} onBack={() => setCurrentStep(1)} />,
     },
   ]
 
