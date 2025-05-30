@@ -148,10 +148,6 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
           </Button>
         </div>
 
-        <p className="text-sm text-muted-foreground mb-4">
-          Select documents from the docs directory to include in your SOW generation
-        </p>
-
         <ScrollArea className="h-80 border rounded-md">
           {isLoading ? (
             <div className="flex items-center justify-center h-full">
@@ -169,7 +165,11 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
           ) : (
             <div className="p-4 space-y-2">
               {availableFiles.map((file) => (
-                <Card key={file.path} className="hover:bg-muted/50 transition-colors">
+                <Card
+                  key={file.path}
+                  className="hover:bg-muted/50 transition-colors cursor-pointer"
+                  onClick={() => handleFileSelect(file, !wizardData.selectedFiles.some((f) => f.path === file.path))}
+                >
                   <CardContent className="p-3">
                     <div className="flex items-center space-x-3">
                       <Checkbox
@@ -180,7 +180,7 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
                       <div className="flex items-center gap-2 flex-1">
                         <FilePresentation className="h-5 w-5 text-muted-foreground" />
                         <div className="flex-1">
-                          <Label htmlFor={file.path} className="font-medium cursor-pointer">
+                          <Label htmlFor={file.path} className="font-medium">
                             {file.name}
                           </Label>
                           <p className="text-xs text-muted-foreground">

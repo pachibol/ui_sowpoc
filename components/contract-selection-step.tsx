@@ -65,12 +65,13 @@ export function ContractSelectionStep({ wizardData, setWizardData, onNext }: Con
               className={`cursor-pointer transition-colors ${
                 wizardData.selectedContractType === type.id ? "border-primary bg-primary/5" : "hover:bg-muted/50"
               }`}
+              onClick={() => handleContractTypeChange(type.id)}
             >
               <CardContent className="p-4">
                 <div className="flex items-start space-x-3">
                   <RadioGroupItem value={type.id} id={type.id} className="mt-1" />
                   <div className="flex-1">
-                    <Label htmlFor={type.id} className="text-base font-medium cursor-pointer">
+                    <Label htmlFor={type.id} className="text-base font-medium">
                       {type.label}
                     </Label>
                     <p className="text-sm text-muted-foreground mt-1">{type.description}</p>

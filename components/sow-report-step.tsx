@@ -208,6 +208,26 @@ ${getPricingStructure(wizardData.selectedContractType)}
     }
   }
 
+  // Helper function to parse text formatting
+  const parseTextFormatting = (text: string): TextRun[] => {
+    const runs: TextRun[] = []
+    const parts = text.split("**")
+
+    for (let i = 0; i < parts.length; i++) {
+      if (i % 2 === 0) {
+        // Regular text
+        if (parts[i]) {
+          runs.push(new TextRun(parts[i]))
+        }
+      } else {
+        // Bold text
+        runs.push(new TextRun({ text: parts[i], bold: true }))
+      }
+    }
+
+    return runs.length > 0 ? runs : [new TextRun(text)]
+  }
+
   // Function to convert markdown to DOCX
   const createDocxFromMarkdown = (markdown: string) => {
     const lines = markdown.split("\n")
@@ -270,9 +290,10 @@ ${getPricingStructure(wizardData.selectedContractType)}
         }
 
         const content = line.replace(/^\d+\.\s/, "")
+        const runs = parseTextFormatting(content)
         listItems.push(
           new Paragraph({
-            text: content,
+            children: runs,
             bullet: {
               level: 0,
             },
@@ -295,9 +316,11 @@ ${getPricingStructure(wizardData.selectedContractType)}
           inList = true
         }
 
+        const content = line.substring(2)
+        const runs = parseTextFormatting(content)
         listItems.push(
           new Paragraph({
-            text: line.substring(2),
+            children: runs,
             bullet: {
               level: 0,
             },
@@ -447,38 +470,12 @@ ${getPricingStructure(wizardData.selectedContractType)}
         <div className="markdown" dangerouslySetInnerHTML={{ __html: markdownToHtml(generateSowMarkdown()) }} />
       </div>
 
-      <div className="bg-primary/5 p-4 rounded-md">
-        <h4 className="font-medium mb-2">Summary</h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-          <div>
-            <span className="font-medium">Contract Type:</span>
-            <p className="text-muted-foreground">
-              {wizardData.selectedContractType
-                ?.split("-")
-                .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                .join(" ")}
-            </p>
-          </div>
-          <div>
-            <span className="font-medium">Documents Selected:</span>
-            <p className="text-muted-foreground">{wizardData.selectedFiles.length} files</p>
-          </div>
-          <div>
-            <span className="font-medium">Generated:</span>
-            <p className="text-muted-foreground">{new Date().toLocaleDateString()}</p>
-          </div>
-        </div>
-      </div>
-
       <div className="pt-6 border-t flex justify-between">
         <Button variant="outline" onClick={onBack} className="flex items-center gap-1">
           <ArrowLeft className="h-4 w-4" />
           Back to Proposals
         </Button>
-        <div className="flex gap-2">
-          <Button variant="outline">Save as Template</Button>
-          <Button>Finalize SOW</Button>
-        </div>
+        <Button>Finalize SOW</Button>
       </div>
     </div>
   )
