@@ -27,7 +27,7 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
   const [isGenerating, setIsGenerating] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [uploadSuccess, setUploadSuccess] = useState(false)
-  const [progress, setProgress] = useState(0)
+  const [elapsedTime, setElapsedTime] = useState(0)
 
   // Simulate reading files from docs directory on component mount and refresh
   useEffect(() => {
@@ -139,20 +139,19 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
     }
 
     setIsGenerating(true)
-    setProgress(10) // Start at 10 seconds
+    setElapsedTime(0)
 
-    // Countdown from 10 to 0 over 5 seconds (500ms per second)
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev <= 0) {
-          clearInterval(interval)
-          setIsGenerating(false)
-          onNext()
-          return 0
-        }
-        return prev - 1
-      })
-    }, 500) // Update every 500ms for 10 steps over 5 seconds
+    // Start the timer that counts up every second
+    const timerInterval = setInterval(() => {
+      setElapsedTime((prev) => prev + 1)
+    }, 1000)
+
+    // Simulate the 5-second generation process
+    setTimeout(() => {
+      clearInterval(timerInterval)
+      setIsGenerating(false)
+      onNext()
+    }, 5000)
   }
 
   return (
@@ -269,7 +268,7 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
           {isGenerating ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Generating... {progress}s
+              Generating... {elapsedTime}s
             </>
           ) : (
             <>
