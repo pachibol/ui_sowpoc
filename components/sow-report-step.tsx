@@ -1,8 +1,10 @@
 "use client"
 
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import type { WizardData } from "@/components/wizard"
-import { ArrowLeft, Download, FileText } from "lucide-react"
+import { ArrowLeft, Download, FileText, Loader2 } from "lucide-react"
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } from "docx"
 
 interface SowReportStepProps {
   wizardData: WizardData
@@ -10,6 +12,8 @@ interface SowReportStepProps {
 }
 
 export function SowReportStep({ wizardData, onBack }: SowReportStepProps) {
+  const [isDownloading, setIsDownloading] = useState(false)
+
   const generateSowMarkdown = () => {
     const contractType = wizardData.selectedContractType
       ? wizardData.selectedContractType
@@ -177,17 +181,238 @@ ${getPricingStructure(wizardData.selectedContractType)}
     }
   }
 
-  const handleDownload = () => {
-    const markdown = generateSowMarkdown()
-    const blob = new Blob([markdown], { type: "text/markdown" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `SOW_${new Date().toISOString().split("T")[0]}.md`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+  const handleDownload = async () => {
+    setIsDownloading(true)
+
+    try {
+      // Create a new document
+      const doc = createDocxFromMarkdown(generateSowMarkdown())
+
+      // Generate the DOCX file
+      const blob = await Packer.toBlob(doc)
+
+      // Create a download link
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `SOW_${new Date().toISOString().split("T")[0]}.docx`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error("Error generating DOCX:", error)
+      alert("Error generating DOCX file. Please try again.")
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+
+  // Function to convert markdown to DOCX
+  const createDocxFromMarkdown = (markdown: string) => {
+    const lines = markdown.split("\n")
+    const docElements: any[] = []
+
+    let inList = false
+    let listItems: Paragraph[] = []
+    let currentListNumber = 1
+
+    lines.forEach((line) => {
+      // Skip empty lines
+      if (line.trim() === "") return
+
+      // Heading 1
+      if (line.startsWith("# ")) {
+        docElements.push(
+          new Paragraph({
+            text: line.substring(2),
+            heading: HeadingLevel.HEADING_1,
+            thematicBreak: true,
+          }),
+        )
+      }
+      // Heading 2
+      else if (line.startsWith("## ")) {
+        docElements.push(
+          new Paragraph({
+            text: line.substring(3),
+            heading: HeadingLevel.HEADING_2,
+            spacing: {
+              before: 400,
+              after: 200,
+            },
+          }),
+        )
+      }
+      // Heading 3
+      else if (line.startsWith("### ")) {
+        docElements.push(
+          new Paragraph({
+            text: line.substring(4),
+            heading: HeadingLevel.HEADING_3,
+            spacing: {
+              before: 300,
+              after: 150,
+            },
+          }),
+        )
+      }
+      // Numbered list
+      else if (/^\d+\.\s/.test(line)) {
+        if (!inList || !line.startsWith(`${currentListNumber}.`)) {
+          // If we weren't in a list or this is a new list, add the previous list if it exists
+          if (listItems.length > 0) {
+            docElements.push(...listItems)
+            listItems = []
+          }
+          inList = true
+          currentListNumber = Number.parseInt(line.match(/^\d+/)?.[0] || "1", 10)
+        }
+
+        const content = line.replace(/^\d+\.\s/, "")
+        listItems.push(
+          new Paragraph({
+            text: content,
+            bullet: {
+              level: 0,
+            },
+            spacing: {
+              before: 100,
+              after: 100,
+            },
+          }),
+        )
+        currentListNumber++
+      }
+      // Bullet list
+      else if (line.startsWith("- ")) {
+        if (!inList) {
+          // If we weren't in a list, add the previous list if it exists
+          if (listItems.length > 0) {
+            docElements.push(...listItems)
+            listItems = []
+          }
+          inList = true
+        }
+
+        listItems.push(
+          new Paragraph({
+            text: line.substring(2),
+            bullet: {
+              level: 0,
+            },
+            spacing: {
+              before: 100,
+              after: 100,
+            },
+          }),
+        )
+      }
+      // Bold text
+      else if (line.includes("**")) {
+        const parts = line.split("**")
+        const runs: TextRun[] = []
+
+        for (let i = 0; i < parts.length; i++) {
+          if (i % 2 === 0) {
+            // Regular text
+            if (parts[i]) {
+              runs.push(new TextRun(parts[i]))
+            }
+          } else {
+            // Bold text
+            runs.push(new TextRun({ text: parts[i], bold: true }))
+          }
+        }
+
+        docElements.push(new Paragraph({ children: runs }))
+      }
+      // Regular text
+      else {
+        // If we were in a list, add the list items and reset
+        if (inList) {
+          docElements.push(...listItems)
+          listItems = []
+          inList = false
+        }
+
+        docElements.push(new Paragraph({ text: line }))
+      }
+    })
+
+    // Add any remaining list items
+    if (listItems.length > 0) {
+      docElements.push(...listItems)
+    }
+
+    // Create signature lines
+    const signatureLines = [
+      new Paragraph({
+        text: "Signatures",
+        heading: HeadingLevel.HEADING_2,
+        spacing: {
+          before: 400,
+          after: 200,
+        },
+      }),
+      new Paragraph({
+        text: "Client Representative: __________________________ Date: __________",
+        spacing: {
+          before: 200,
+          after: 200,
+        },
+      }),
+      new Paragraph({
+        text: "EY Project Manager: __________________________ Date: __________",
+        spacing: {
+          before: 200,
+          after: 200,
+        },
+      }),
+      new Paragraph({
+        text: "EY Engagement Partner: __________________________ Date: __________",
+        spacing: {
+          before: 200,
+          after: 200,
+        },
+      }),
+    ]
+
+    // Add footer
+    const footer = new Paragraph({
+      text: `This SOW was generated using the EY SOW Creator Wizard based on ${wizardData.selectedFiles.length} selected document(s) and ${
+        wizardData.selectedContractType
+          ? wizardData.selectedContractType
+              .split("-")
+              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(" ")
+          : "Not specified"
+      } contract model.`,
+      style: "Footer",
+      alignment: AlignmentType.CENTER,
+      spacing: {
+        before: 400,
+      },
+      border: {
+        top: {
+          style: BorderStyle.SINGLE,
+          size: 1,
+          color: "999999",
+        },
+      },
+    })
+
+    // Create the document
+    const doc = new Document({
+      sections: [
+        {
+          properties: {},
+          children: [...docElements, ...signatureLines, footer],
+        },
+      ],
+    })
+
+    return doc
   }
 
   return (
@@ -197,9 +422,24 @@ ${getPricingStructure(wizardData.selectedContractType)}
           <FileText className="h-5 w-5" />
           <h3 className="text-lg font-medium">Generated Statement of Work</h3>
         </div>
-        <Button variant="outline" size="sm" onClick={handleDownload} className="flex items-center gap-1">
-          <Download className="h-4 w-4" />
-          Download SOW
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleDownload}
+          disabled={isDownloading}
+          className="flex items-center gap-1"
+        >
+          {isDownloading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Generating DOCX...
+            </>
+          ) : (
+            <>
+              <Download className="h-4 w-4" />
+              Download SOW
+            </>
+          )}
         </Button>
       </div>
 
