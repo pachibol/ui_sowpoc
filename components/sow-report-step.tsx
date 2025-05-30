@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import type { WizardData } from "@/components/wizard"
-import { ArrowLeft, Download, FileText, Loader2 } from "lucide-react"
+import { ArrowLeft, Download, Loader2 } from "lucide-react"
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } from "docx"
 
 interface SowReportStepProps {
@@ -440,18 +440,16 @@ ${getPricingStructure(wizardData.selectedContractType)}
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <FileText className="h-5 w-5" />
-          <h3 className="text-lg font-medium">Generated Statement of Work</h3>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleDownload}
-          disabled={isDownloading}
-          className="flex items-center gap-1"
-        >
+      <div className="border rounded-md p-6 bg-muted/30 prose prose-sm max-w-none max-h-96 overflow-y-auto">
+        <div className="markdown" dangerouslySetInnerHTML={{ __html: markdownToHtml(generateSowMarkdown()) }} />
+      </div>
+
+      <div className="pt-6 border-t flex justify-between">
+        <Button variant="outline" onClick={onBack} className="flex items-center gap-1">
+          <ArrowLeft className="h-4 w-4" />
+          Back to Proposals
+        </Button>
+        <Button onClick={handleDownload} disabled={isDownloading} className="flex items-center gap-2">
           {isDownloading ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -464,18 +462,6 @@ ${getPricingStructure(wizardData.selectedContractType)}
             </>
           )}
         </Button>
-      </div>
-
-      <div className="border rounded-md p-6 bg-muted/30 prose prose-sm max-w-none max-h-96 overflow-y-auto">
-        <div className="markdown" dangerouslySetInnerHTML={{ __html: markdownToHtml(generateSowMarkdown()) }} />
-      </div>
-
-      <div className="pt-6 border-t flex justify-between">
-        <Button variant="outline" onClick={onBack} className="flex items-center gap-1">
-          <ArrowLeft className="h-4 w-4" />
-          Back to Proposals
-        </Button>
-        <Button>Finalize SOW</Button>
       </div>
     </div>
   )
