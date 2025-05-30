@@ -195,7 +195,10 @@ ${getPricingStructure(wizardData.selectedContractType)}
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `SOW_${new Date().toISOString().split("T")[0]}.docx`
+      // Generate unique filename with timestamp
+      const now = new Date()
+      const timestamp = now.toISOString().replace(/[-:]/g, "").replace("T", "_").substring(0, 15) // YYYYMMDD_HHMMSS
+      a.download = `SOW_${timestamp}.docx`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)

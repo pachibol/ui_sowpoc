@@ -87,11 +87,29 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
     setIsUploading(true)
     setUploadSuccess(false)
 
+    // Generate unique filename if duplicate exists
+    const generateUniqueFilename = (originalName: string) => {
+      const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf("."))
+      const extension = originalName.substring(originalName.lastIndexOf("."))
+
+      let counter = 0
+      let newName = originalName
+
+      while (availableFiles.some((f) => f.name === newName)) {
+        counter++
+        newName = `${nameWithoutExt}_${counter}${extension}`
+      }
+
+      return newName
+    }
+
     // Simulate file upload delay
     setTimeout(() => {
+      const uniqueFileName = generateUniqueFilename(file.name)
+
       const newFile: FileData = {
-        name: file.name,
-        path: `/docs/${file.name}`,
+        name: uniqueFileName,
+        path: `/docs/${uniqueFileName}`,
         size: `${Math.round(file.size / 1024)} KB`,
         lastModified: new Date().toISOString().split("T")[0],
         type: "presentation",
@@ -121,20 +139,20 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
     }
 
     setIsGenerating(true)
-    setProgress(0)
+    setProgress(10) // Start at 10 seconds
 
-    // Simulate progress over 3 seconds
+    // Countdown from 10 to 0 over 5 seconds (500ms per second)
     const interval = setInterval(() => {
       setProgress((prev) => {
-        if (prev >= 100) {
+        if (prev <= 0) {
           clearInterval(interval)
           setIsGenerating(false)
           onNext()
-          return 100
+          return 0
         }
-        return prev + 2
+        return prev - 1
       })
-    }, 60) // Update every 60ms for smooth animation
+    }, 500) // Update every 500ms for 10 steps over 5 seconds
   }
 
   return (
@@ -187,9 +205,6 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
                             {file.size} • {file.lastModified}
                           </p>
                         </div>
-                        {wizardData.uploadedFiles.some((f) => f.path === file.path) && (
-                          <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">New</span>
-                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -254,7 +269,7 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
           {isGenerating ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Generating... {progress}%
+              Generating... {progress}s
             </>
           ) : (
             <>
