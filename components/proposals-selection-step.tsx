@@ -11,9 +11,6 @@ import { Upload, RefreshCw, ArrowLeft, ArrowRight, Loader2, FileIcon as FilePres
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Card, CardContent } from "@/components/ui/card"
 
-// Empty initial files array - we'll load files dynamically
-const initialDocsFiles: FileData[] = []
-
 interface ProposalsSelectionStepProps {
   wizardData: WizardData
   setWizardData: React.Dispatch<React.SetStateAction<WizardData>>
@@ -30,7 +27,7 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
   const [elapsedTime, setElapsedTime] = useState(0)
   const [error, setError] = useState<string | null>(null)
 
-  // Simulate reading files from docs directory on component mount and refresh
+  // Load files from docs directory on component mount and refresh
   useEffect(() => {
     loadFilesFromDocs()
   }, [])
@@ -45,19 +42,31 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
     }
   }, [uploadSuccess])
 
-  const loadFilesFromDocs = () => {
+  const loadFilesFromDocs = async () => {
     setIsLoading(true)
+    setError(null)
 
-    // Simulate API call to read files from docs directory
-    setTimeout(() => {
-      // Remove duplicates by using a Map with path as key
-      const uniqueFiles = new Map()
-      wizardData.uploadedFiles.forEach((file) => {
-        uniqueFiles.set(file.path, file)
-      })
-      setAvailableFiles(Array.from(uniqueFiles.values()))
+    try {
+      const response = await fetch("/api/files")
+      const data = await response.json()
+
+      if (response.ok) {
+        setAvailableFiles(data.files || [])
+
+        // Update wizard data with the loaded files
+        setWizardData((prev) => ({
+          ...prev,
+          uploadedFiles: data.files || [],
+        }))
+      } else {
+        setError("Error loading files from docs directory")
+      }
+    } catch (err) {
+      console.error("Error loading files:", err)
+      setError("Error loading files from docs directory")
+    } finally {
       setIsLoading(false)
-    }, 800)
+    }
   }
 
   const handleFileSelect = (file: FileData, checked: boolean) => {
@@ -81,7 +90,7 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
     })
   }
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -96,64 +105,46 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
 
     setIsUploading(true)
     setUploadSuccess(false)
+    setError(null)
 
-    // Generate unique filename if duplicate exists
-    const generateUniqueFilename = (originalName: string) => {
-      const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf("."))
-      const extension = originalName.substring(originalName.lastIndexOf("."))
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
 
-      let counter = 0
-      let newName = originalName
-
-      // Check against both availableFiles and uploadedFiles to avoid duplicates
-      const allFiles = [...availableFiles, ...wizardData.uploadedFiles]
-      while (allFiles.some((f) => f.name === newName)) {
-        counter++
-        newName = `${nameWithoutExt}_${counter}${extension}`
-      }
-
-      return newName
-    }
-
-    // Simulate file upload delay
-    setTimeout(() => {
-      const uniqueFileName = generateUniqueFilename(file.name)
-
-      const newFile: FileData = {
-        name: uniqueFileName,
-        path: `/docs/${uniqueFileName}`,
-        size: `${Math.round(file.size / 1024)} KB`,
-        lastModified: new Date().toISOString().split("T")[0],
-        type: "presentation",
-      }
-
-      // Add to availableFiles only if not already present
-      setAvailableFiles((prev) => {
-        const exists = prev.some((f) => f.path === newFile.path)
-        return exists ? prev : [...prev, newFile]
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
       })
 
-      // Add to uploadedFiles only if not already present
-      setWizardData((prev) => {
-        const exists = prev.uploadedFiles.some((f) => f.path === newFile.path)
-        return exists
-          ? prev
-          : {
-              ...prev,
-              uploadedFiles: [...prev.uploadedFiles, newFile],
-            }
-      })
+      const data = await response.json()
 
+      if (response.ok && data.success) {
+        // Add the uploaded file to available files
+        setAvailableFiles((prev) => [...prev, data.file])
+
+        // Update wizard data
+        setWizardData((prev) => ({
+          ...prev,
+          uploadedFiles: [...prev.uploadedFiles, data.file],
+        }))
+
+        setUploadSuccess(true)
+        console.log("File uploaded successfully:", data.file)
+      } else {
+        setError(data.message || "Error uploading file")
+      }
+    } catch (err) {
+      console.error("Error uploading file:", err)
+      setError("Error uploading file")
+    } finally {
       setIsUploading(false)
-      setUploadSuccess(true)
-
       // Reset the file input
       e.target.value = ""
-    }, 1500)
+    }
   }
 
   const refreshFileList = () => {
-    // Clear the list and reload files from docs directory
+    // Reload files from docs directory
     loadFilesFromDocs()
   }
 
@@ -302,7 +293,7 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
           )}
           {uploadSuccess && (
             <div className="flex items-center gap-2">
-              <p className="text-sm text-green-600">Document Uploaded</p>
+              <p className="text-sm text-green-600">Document uploaded to docs folder</p>
             </div>
           )}
         </div>
