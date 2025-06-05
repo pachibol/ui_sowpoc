@@ -185,8 +185,8 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
         filenames: wizardData.selectedFiles.map((file) => file.name),
       }
 
-      // Make the API call
-      const response = await fetch(`${apiEndpoint}/generate-sow`, {
+      // Make the API call using the full endpoint URL
+      const response = await fetch(apiEndpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
