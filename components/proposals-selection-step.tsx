@@ -49,8 +49,12 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
 
     // Simulate API call to read files from docs directory
     setTimeout(() => {
-      // Combine any existing uploaded files with the ones from the docs directory
-      setAvailableFiles([...wizardData.uploadedFiles])
+      // Remove duplicates by using a Map with path as key
+      const uniqueFiles = new Map()
+      wizardData.uploadedFiles.forEach((file) => {
+        uniqueFiles.set(file.path, file)
+      })
+      setAvailableFiles(Array.from(uniqueFiles.values()))
       setIsLoading(false)
     }, 800)
   }
@@ -58,6 +62,11 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
   const handleFileSelect = (file: FileData, checked: boolean) => {
     setWizardData((prev) => {
       if (checked) {
+        // Check if file is already selected to avoid duplicates
+        const isAlreadySelected = prev.selectedFiles.some((f) => f.path === file.path)
+        if (isAlreadySelected) {
+          return prev // Don't add if already selected
+        }
         return {
           ...prev,
           selectedFiles: [...prev.selectedFiles, file],
@@ -95,7 +104,9 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
       let counter = 0
       let newName = originalName
 
-      while (availableFiles.some((f) => f.name === newName)) {
+      // Check against both availableFiles and uploadedFiles to avoid duplicates
+      const allFiles = [...availableFiles, ...wizardData.uploadedFiles]
+      while (allFiles.some((f) => f.name === newName)) {
         counter++
         newName = `${nameWithoutExt}_${counter}${extension}`
       }
@@ -115,11 +126,23 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
         type: "presentation",
       }
 
-      setAvailableFiles((prev) => [...prev, newFile])
-      setWizardData((prev) => ({
-        ...prev,
-        uploadedFiles: [...prev.uploadedFiles, newFile],
-      }))
+      // Add to availableFiles only if not already present
+      setAvailableFiles((prev) => {
+        const exists = prev.some((f) => f.path === newFile.path)
+        return exists ? prev : [...prev, newFile]
+      })
+
+      // Add to uploadedFiles only if not already present
+      setWizardData((prev) => {
+        const exists = prev.uploadedFiles.some((f) => f.path === newFile.path)
+        return exists
+          ? prev
+          : {
+              ...prev,
+              uploadedFiles: [...prev.uploadedFiles, newFile],
+            }
+      })
+
       setIsUploading(false)
       setUploadSuccess(true)
 
