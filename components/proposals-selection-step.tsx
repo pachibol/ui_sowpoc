@@ -185,6 +185,9 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
         filenames: wizardData.selectedFiles.map((file) => file.name),
       }
 
+      console.log("Sending request to:", apiEndpoint)
+      console.log("Payload:", JSON.stringify(payload))
+
       // Make the API call using the full endpoint URL
       const response = await fetch(apiEndpoint, {
         method: "POST",
@@ -196,10 +199,12 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
       })
 
       if (!response.ok) {
-        throw new Error(`API request failed: ${response.status} ${response.statusText}`)
+        const errorText = await response.text()
+        throw new Error(`API request failed: ${response.status} ${response.statusText}. Details: ${errorText}`)
       }
 
       const data = await response.json()
+      console.log("API response:", data)
 
       // Update wizard data with the generated SOW text
       setWizardData((prev) => ({
