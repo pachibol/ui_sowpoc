@@ -28,6 +28,7 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
   const [isLoading, setIsLoading] = useState(true)
   const [uploadSuccess, setUploadSuccess] = useState(false)
   const [elapsedTime, setElapsedTime] = useState(0)
+  const [error, setError] = useState<string | null>(null)
 
   // Simulate reading files from docs directory on component mount and refresh
   useEffect(() => {
@@ -156,25 +157,69 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
     loadFilesFromDocs()
   }
 
-  const handleGenerate = async () => {
-    if (wizardData.selectedFiles.length === 0) {
+  const generateSOW = async () => {
+    if (!wizardData.selectedContractType || wizardData.selectedFiles.length === 0) {
       return
     }
 
     setIsGenerating(true)
     setElapsedTime(0)
+    setError(null)
 
     // Start the timer that counts up every second
     const timerInterval = setInterval(() => {
       setElapsedTime((prev) => prev + 1)
     }, 1000)
 
-    // Simulate the 5-second generation process
-    setTimeout(() => {
+    try {
+      const apiEndpoint = process.env.NEXT_PUBLIC_API_ENDPOINT
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY
+
+      if (!apiEndpoint || !apiKey) {
+        throw new Error("API configuration missing")
+      }
+
+      // Prepare the request payload
+      const payload = {
+        contract_type: wizardData.selectedContractType.replace("-", "_"), // Convert to snake_case
+        filenames: wizardData.selectedFiles.map((file) => file.name),
+      }
+
+      // Make the API call
+      const response = await fetch(`${apiEndpoint}/generate-sow`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`)
+      }
+
+      const data = await response.json()
+
+      // Update wizard data with the generated SOW text
+      setWizardData((prev) => ({
+        ...prev,
+        generatedSowText: data.sow_text,
+      }))
+
       clearInterval(timerInterval)
       setIsGenerating(false)
       onNext()
-    }, 5000)
+    } catch (err) {
+      clearInterval(timerInterval)
+      setIsGenerating(false)
+      setError(err instanceof Error ? err.message : "An error occurred while generating the SOW")
+      console.error("Error generating SOW:", err)
+    }
+  }
+
+  const handleGenerate = async () => {
+    await generateSOW()
   }
 
   return (
@@ -261,6 +306,12 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
       {!isLoading && availableFiles.length > 0 && wizardData.selectedFiles.length === 0 && (
         <Alert>
           <AlertDescription>Please select at least one document to continue</AlertDescription>
+        </Alert>
+      )}
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 

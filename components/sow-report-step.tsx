@@ -14,7 +14,12 @@ interface SowReportStepProps {
 export function SowReportStep({ wizardData, onBack }: SowReportStepProps) {
   const [isDownloading, setIsDownloading] = useState(false)
 
-  const generateSowMarkdown = () => {
+  const getSowContent = () => {
+    // Use the generated SOW text from the backend if available, otherwise use fallback
+    return wizardData.generatedSowText || generateFallbackSowMarkdown()
+  }
+
+  const generateFallbackSowMarkdown = () => {
     const contractType = wizardData.selectedContractType
       ? wizardData.selectedContractType
           .split("-")
@@ -186,7 +191,7 @@ ${getPricingStructure(wizardData.selectedContractType)}
 
     try {
       // Create a new document
-      const doc = createDocxFromMarkdown(generateSowMarkdown())
+      const doc = createDocxFromMarkdown(getSowContent())
 
       // Generate the DOCX file
       const blob = await Packer.toBlob(doc)
@@ -444,7 +449,7 @@ ${getPricingStructure(wizardData.selectedContractType)}
   return (
     <div className="space-y-6">
       <div className="border rounded-md p-6 bg-muted/30 prose prose-sm max-w-none max-h-96 overflow-y-auto">
-        <div className="markdown" dangerouslySetInnerHTML={{ __html: markdownToHtml(generateSowMarkdown()) }} />
+        <div className="markdown" dangerouslySetInnerHTML={{ __html: markdownToHtml(getSowContent()) }} />
       </div>
 
       <div className="pt-6 border-t flex justify-between">

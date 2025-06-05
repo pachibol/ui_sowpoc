@@ -13,6 +13,7 @@ export interface WizardData {
   selectedContractType: ContractType | null
   selectedFiles: FileData[]
   uploadedFiles: FileData[]
+  generatedSowText?: string
 }
 
 export function Wizard() {
