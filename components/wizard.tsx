@@ -6,7 +6,7 @@ import { ProposalsSelectionStep } from "@/components/proposals-selection-step"
 import { SowReportStep } from "@/components/sow-report-step"
 import { Progress } from "@/components/ui/progress"
 
-export type ContractType = "fixed-price" | "time-and-materials" | "staff-augmentation"
+export type ContractType = "time_and_materials" | "agile_scrum" | "change_requests" | "generic_sows"
 export type FileData = { name: string; path: string; size: string; lastModified: string; type: string }
 
 export interface WizardData {

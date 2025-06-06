@@ -19,13 +19,23 @@ export function SowReportStep({ wizardData, onBack }: SowReportStepProps) {
     return wizardData.generatedSowText || generateFallbackSowMarkdown()
   }
 
+  const getContractTypeLabel = (contractType: string | null) => {
+    switch (contractType) {
+      case "time_and_materials":
+        return "Time and Materials"
+      case "agile_scrum":
+        return "Agile Scrum"
+      case "change_requests":
+        return "Change Requests to SOW"
+      case "generic_sows":
+        return "Generic SOWs"
+      default:
+        return "Not specified"
+    }
+  }
+
   const generateFallbackSowMarkdown = () => {
-    const contractType = wizardData.selectedContractType
-      ? wizardData.selectedContractType
-          .split("-")
-          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-          .join(" ")
-      : "Not specified"
+    const contractTypeLabel = getContractTypeLabel(wizardData.selectedContractType)
 
     const selectedFiles = wizardData.selectedFiles.map((file) => `- ${file.name}`).join("\n")
     const uploadedFiles =
@@ -43,10 +53,10 @@ export function SowReportStep({ wizardData, onBack }: SowReportStepProps) {
     })}
 
 ## Project Overview
-This Statement of Work (SOW) outlines the scope, deliverables, timeline, and terms for the project based on the selected contract model and proposal documents.
+This Statement of Work (SOW) outlines the scope, deliverables, timeline, and terms for the project based on the selected SOW category and proposal documents.
 
-## Contract Model
-**${contractType}**
+## SOW Category
+**${contractTypeLabel}**
 
 ${getContractDescription(wizardData.selectedContractType)}
 
@@ -56,7 +66,7 @@ The following documents from the docs directory have been selected for this SOW:
 ${selectedFiles}${uploadedFiles}
 
 ## Scope of Work
-Based on the selected proposal documents and contract type, this project will encompass:
+Based on the selected proposal documents and SOW category, this project will encompass:
 
 1. **Requirements Analysis** - Review and analysis of all provided documentation
 2. **Solution Design** - Technical and functional design based on requirements
@@ -110,23 +120,13 @@ ${getPricingStructure(wizardData.selectedContractType)}
 - **EY Engagement Partner:** ________________________ Date: __________
 
 ---
-*This SOW was generated using the EY SOW Creator Wizard based on ${wizardData.selectedFiles.length} selected document(s) and ${contractType} contract model.*
+*This SOW was generated using the EY SOW Creator Wizard based on ${wizardData.selectedFiles.length} selected document(s) and ${contractTypeLabel} category.*
 `
   }
 
   const getContractDescription = (contractType: string | null) => {
     switch (contractType) {
-      case "fixed-price":
-        return `
-**Description:** Total project cost is determined upfront and remains fixed regardless of actual resources used. This model provides cost certainty and transfers delivery risk to EY.
-
-**Benefits:**
-- Predictable budget and costs
-- Clear scope and deliverables
-- Risk transfer to service provider
-- Simplified contract management`
-
-      case "time-and-materials":
+      case "time_and_materials":
         return `
 **Description:** Billing is based on actual time spent and materials used during the project. This model provides flexibility for evolving requirements and scope changes.
 
@@ -136,32 +136,44 @@ ${getPricingStructure(wizardData.selectedContractType)}
 - Easier scope modifications
 - Transparent cost tracking`
 
-      case "staff-augmentation":
+      case "agile_scrum":
         return `
-**Description:** EY resources are provided at agreed hourly/daily/monthly rates to supplement the client's existing team. This model provides access to specialized skills and expertise.
+**Description:** Iterative development approach with sprint-based delivery and continuous stakeholder collaboration. Work is organized in time-boxed iterations with regular reviews and adaptations.
 
 **Benefits:**
-- Access to specialized expertise
-- Scalable resource allocation
-- Integration with existing teams
-- Knowledge transfer opportunities`
+- Rapid delivery of working solutions
+- Continuous stakeholder feedback
+- Adaptive planning and scope management
+- Risk mitigation through early delivery`
+
+      case "change_requests":
+        return `
+**Description:** Modifications and amendments to existing Statement of Work documents and project scope. This covers scope changes, timeline adjustments, and resource modifications.
+
+**Benefits:**
+- Formal change control process
+- Clear documentation of scope changes
+- Impact assessment for all modifications
+- Transparent cost and timeline implications`
+
+      case "generic_sows":
+        return `
+**Description:** Standard Statement of Work templates for common project types and service offerings. These provide a foundation for typical engagement structures.
+
+**Benefits:**
+- Standardized approach to common projects
+- Reduced time to contract
+- Proven delivery methodologies
+- Consistent quality and expectations`
 
       default:
-        return "Contract model details to be defined."
+        return "SOW category details to be defined."
     }
   }
 
   const getPricingStructure = (contractType: string | null) => {
     switch (contractType) {
-      case "fixed-price":
-        return `
-**Fixed Price Model:**
-- Total project cost: $XXX,XXX (to be determined based on final scope)
-- Payment schedule: 20% upon contract signing, 30% at design completion, 30% at implementation completion, 20% upon final acceptance
-- No additional charges for scope within agreed parameters
-- Change requests will be handled through formal change control process`
-
-      case "time-and-materials":
+      case "time_and_materials":
         return `
 **Time and Materials Model:**
 - Senior Consultant: $XXX per hour
@@ -171,18 +183,37 @@ ${getPricingStructure(wizardData.selectedContractType)}
 - Materials and expenses at cost plus 10% markup
 - Monthly invoicing based on actual hours worked`
 
-      case "staff-augmentation":
+      case "agile_scrum":
         return `
-**Staff Augmentation Model:**
-- Senior Resource: $XXX per day/month
-- Mid-level Resource: $XXX per day/month
-- Junior Resource: $XXX per day/month
-- Minimum commitment: 3 months
-- 30-day notice for resource changes
-- Monthly invoicing in advance`
+**Agile Scrum Model:**
+- Sprint duration: 2-4 weeks
+- Scrum Master: $XXX per sprint
+- Product Owner: $XXX per sprint
+- Development Team: $XXX per sprint
+- Sprint planning and review included
+- Monthly invoicing per completed sprint`
+
+      case "change_requests":
+        return `
+**Change Request Model:**
+- Impact assessment: $XXX (fixed fee)
+- Implementation: Time and materials basis
+- Senior Consultant: $XXX per hour
+- Change documentation: $XXX per request
+- Approval process included in base fee`
+
+      case "generic_sows":
+        return `
+**Generic SOW Model:**
+- Fixed price based on standard deliverables
+- Phase-based payment schedule
+- 25% upon contract signing
+- 50% at milestone completion
+- 25% upon final acceptance
+- Change requests handled separately`
 
       default:
-        return "Pricing structure to be determined based on selected contract model."
+        return "Pricing structure to be determined based on selected SOW category."
     }
   }
 
@@ -411,14 +442,7 @@ ${getPricingStructure(wizardData.selectedContractType)}
 
     // Add footer
     const footer = new Paragraph({
-      text: `This SOW was generated using the EY SOW Creator Wizard based on ${wizardData.selectedFiles.length} selected document(s) and ${
-        wizardData.selectedContractType
-          ? wizardData.selectedContractType
-              .split("-")
-              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-              .join(" ")
-          : "Not specified"
-      } contract model.`,
+      text: `This SOW was generated using the EY SOW Creator Wizard based on ${wizardData.selectedFiles.length} selected document(s) and ${getContractTypeLabel(wizardData.selectedContractType)} category.`,
       style: "Footer",
       alignment: AlignmentType.CENTER,
       spacing: {
