@@ -170,9 +170,9 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
         throw new Error("API configuration missing")
       }
 
-      // Prepare the request payload
+      // Prepare the request payload - send the contract type as-is (already in snake_case)
       const payload = {
-        contract_type: wizardData.selectedContractType.replace("-", "_"), // Convert to snake_case
+        contract_type: wizardData.selectedContractType, // No need to convert, already in correct format
         filenames: wizardData.selectedFiles.map((file) => file.name),
       }
 
