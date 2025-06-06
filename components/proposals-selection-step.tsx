@@ -6,8 +6,18 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import type { FileData, WizardData } from "@/components/wizard"
-import { Upload, RefreshCw, ArrowLeft, ArrowRight, Loader2, FileIcon as FilePresentation } from "lucide-react"
+import { Upload, RefreshCw, ArrowLeft, ArrowRight, Loader2, FileIcon as FilePresentation, Trash2 } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Card, CardContent } from "@/components/ui/card"
 
@@ -26,6 +36,8 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
   const [uploadSuccess, setUploadSuccess] = useState(false)
   const [elapsedTime, setElapsedTime] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [fileToDelete, setFileToDelete] = useState<FileData | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Load files from docs directory on component mount and refresh
   useEffect(() => {
@@ -143,6 +155,47 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
     }
   }
 
+  const handleDeleteFile = async (file: FileData) => {
+    setFileToDelete(file)
+  }
+
+  const confirmDeleteFile = async () => {
+    if (!fileToDelete) return
+
+    setIsDeleting(true)
+    setError(null)
+
+    try {
+      const response = await fetch(`/api/delete?filename=${encodeURIComponent(fileToDelete.name)}`, {
+        method: "DELETE",
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        // Remove the file from available files
+        setAvailableFiles((prev) => prev.filter((f) => f.path !== fileToDelete.path))
+
+        // Remove from wizard data
+        setWizardData((prev) => ({
+          ...prev,
+          uploadedFiles: prev.uploadedFiles.filter((f) => f.path !== fileToDelete.path),
+          selectedFiles: prev.selectedFiles.filter((f) => f.path !== fileToDelete.path),
+        }))
+
+        console.log("File deleted successfully:", fileToDelete.name)
+      } else {
+        setError(data.message || "Error deleting file")
+      }
+    } catch (err) {
+      console.error("Error deleting file:", err)
+      setError("Error deleting file")
+    } finally {
+      setIsDeleting(false)
+      setFileToDelete(null)
+    }
+  }
+
   const refreshFileList = () => {
     // Reload files from docs directory
     loadFilesFromDocs()
@@ -246,11 +299,7 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
           ) : (
             <div className="p-4 space-y-2">
               {availableFiles.map((file) => (
-                <Card
-                  key={file.path}
-                  className="hover:bg-muted/50 transition-colors cursor-pointer"
-                  onClick={() => handleFileSelect(file, !wizardData.selectedFiles.some((f) => f.path === file.path))}
-                >
+                <Card key={file.path} className="hover:bg-muted/50 transition-colors">
                   <CardContent className="p-3">
                     <div className="flex items-center space-x-3">
                       <Checkbox
@@ -258,10 +307,15 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
                         checked={wizardData.selectedFiles.some((f) => f.path === file.path)}
                         onCheckedChange={(checked) => handleFileSelect(file, checked === true)}
                       />
-                      <div className="flex items-center gap-2 flex-1">
+                      <div
+                        className="flex items-center gap-2 flex-1 cursor-pointer"
+                        onClick={() =>
+                          handleFileSelect(file, !wizardData.selectedFiles.some((f) => f.path === file.path))
+                        }
+                      >
                         <FilePresentation className="h-5 w-5 text-muted-foreground" />
                         <div className="flex-1">
-                          <Label htmlFor={file.path} className="font-medium">
+                          <Label htmlFor={file.path} className="font-medium cursor-pointer">
                             {file.name}
                           </Label>
                           <p className="text-xs text-muted-foreground">
@@ -269,6 +323,17 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
                           </p>
                         </div>
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteFile(file)
+                        }}
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -348,6 +413,36 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
           )}
         </Button>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!fileToDelete} onOpenChange={() => setFileToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Document</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{fileToDelete?.name}"? This action cannot be undone and will permanently
+              remove the file from the docs folder.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteFile}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
