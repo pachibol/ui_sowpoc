@@ -21,15 +21,38 @@ Una interfaz en React + Next.js para generar documentos SOW (Statement of Work) 
 npm install docx --legacy-peer-deps
 ```
 
-## Test Endpoint
+## Test Backend (FastAPI)
 
 Se puede opcionalmente levantar un endpoint para probar la integración con el frontend:
+
+Instalar dependencias:
+
+```bash
+pip install -r requirements.txt
+```
+
+Levantar endpoint:
 
 ```bash
 python test_endpoint.py
 ```
 
 Este endpoint devolverá valores mockeados junto con las variables enviadas desde el request.
+
+
+## Ejecución
+
+En otra terminal, ejecutar:
+
+```bash
+npm run dev
+```
+
+Abrir browser en:
+
+http://localhost:3000
+
+
 
 ### Estructura del Payload
 
@@ -48,4 +71,3 @@ Response:
 }
 
 ```
-
