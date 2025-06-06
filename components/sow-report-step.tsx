@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import type { WizardData } from "@/components/wizard"
 import { ArrowLeft, Download, Loader2 } from "lucide-react"
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } from "docx"
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx"
 
 interface SowReportStepProps {
   wizardData: WizardData
@@ -267,7 +267,7 @@ ${getPricingStructure(wizardData.selectedContractType)}
     return runs.length > 0 ? runs : [new TextRun(text)]
   }
 
-  // Function to convert markdown to DOCX
+  // Function to convert markdown to DOCX - MODIFIED to only include the exact content
   const createDocxFromMarkdown = (markdown: string) => {
     const lines = markdown.split("\n")
     const docElements: any[] = []
@@ -407,62 +407,12 @@ ${getPricingStructure(wizardData.selectedContractType)}
       docElements.push(...listItems)
     }
 
-    // Create signature lines
-    const signatureLines = [
-      new Paragraph({
-        text: "Signatures",
-        heading: HeadingLevel.HEADING_2,
-        spacing: {
-          before: 400,
-          after: 200,
-        },
-      }),
-      new Paragraph({
-        text: "Client Representative: __________________________ Date: __________",
-        spacing: {
-          before: 200,
-          after: 200,
-        },
-      }),
-      new Paragraph({
-        text: "EY Project Manager: __________________________ Date: __________",
-        spacing: {
-          before: 200,
-          after: 200,
-        },
-      }),
-      new Paragraph({
-        text: "EY Engagement Partner: __________________________ Date: __________",
-        spacing: {
-          before: 200,
-          after: 200,
-        },
-      }),
-    ]
-
-    // Add footer
-    const footer = new Paragraph({
-      text: `This SOW was generated using the EY SOW Creator Wizard based on ${wizardData.selectedFiles.length} selected document(s) and ${getContractTypeLabel(wizardData.selectedContractType)} category.`,
-      style: "Footer",
-      alignment: AlignmentType.CENTER,
-      spacing: {
-        before: 400,
-      },
-      border: {
-        top: {
-          style: BorderStyle.SINGLE,
-          size: 1,
-          color: "999999",
-        },
-      },
-    })
-
-    // Create the document
+    // Create the document - NO ADDITIONAL TEXT ADDED
     const doc = new Document({
       sections: [
         {
           properties: {},
-          children: [...docElements, ...signatureLines, footer],
+          children: [...docElements],
         },
       ],
     })
