@@ -25,7 +25,7 @@ class DocumentRequest(BaseModel):
 class SowResponse(BaseModel):
     sow_text: str
 
-@app.post("/extract_sow", response_model=SowResponse)
+@app.post("/generate_sow", response_model=SowResponse)
 async def extract_sow(
     request: DocumentRequest,
     authorization: Optional[str] = Header(None)
