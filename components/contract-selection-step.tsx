@@ -57,10 +57,8 @@ export function ContractSelectionStep({ wizardData, setWizardData, onNext }: Con
   return (
     <div className="space-y-8">
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">Select SOW Category</h3>
-        <p className="text-sm text-muted-foreground mb-6">
-          Choose the type of Statement of Work you want to generate (required)
-        </p>
+        <h3 className="text-lg font-medium">Select Contract Type</h3>
+        <p className="text-sm text-muted-foreground mb-6">Choose the contract model for this project (required)</p>
 
         <RadioGroup
           value={wizardData.selectedContractType || ""}
@@ -93,7 +91,7 @@ export function ContractSelectionStep({ wizardData, setWizardData, onNext }: Con
 
       {!wizardData.selectedContractType && (
         <Alert>
-          <AlertDescription>Please select a SOW category to continue</AlertDescription>
+          <AlertDescription>Please select a contract type to continue</AlertDescription>
         </Alert>
       )}
 
