@@ -12,10 +12,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: "No file received" }, { status: 400 })
     }
 
-    // Verificar que sea un archivo PPTX
+    // Obtener extensiones permitidas desde la configuración
+    const allowedExtensions = process.env.NEXT_PUBLIC_ALLOWED_FILE_EXTENSIONS?.split(",").map((ext) =>
+      ext.trim().toLowerCase(),
+    ) || ["pptx"]
+    const maxFileSizeMB = Number.parseInt(process.env.NEXT_PUBLIC_MAX_FILE_SIZE_MB || "50")
+    const maxFileSizeBytes = maxFileSizeMB * 1024 * 1024
+
+    // Verificar el tamaño del archivo
+    if (file.size > maxFileSizeBytes) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `File size exceeds the maximum limit of ${maxFileSizeMB}MB`,
+        },
+        { status: 400 },
+      )
+    }
+
+    // Verificar que sea un archivo con extensión permitida
     const fileExtension = file.name.split(".").pop()?.toLowerCase()
-    if (fileExtension !== "pptx") {
-      return NextResponse.json({ success: false, message: "Only PPTX files are allowed" }, { status: 400 })
+    if (!fileExtension || !allowedExtensions.includes(fileExtension)) {
+      const allowedExtensionsText = allowedExtensions.map((ext) => ext.toUpperCase()).join(", ")
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Only ${allowedExtensionsText} files are allowed`,
+        },
+        { status: 400 },
+      )
     }
 
     const bytes = await file.arrayBuffer()
@@ -53,12 +78,28 @@ export async function POST(request: NextRequest) {
     // Obtener información del archivo
     const stats = await import("fs").then((fs) => fs.promises.stat(fullPath))
 
+    // Determinar el tipo de archivo basado en la extensión
+    const getFileType = (extension: string) => {
+      switch (extension.toLowerCase()) {
+        case "pptx":
+        case "ppt":
+          return "presentation"
+        case "pdf":
+          return "pdf"
+        case "docx":
+        case "doc":
+          return "document"
+        default:
+          return "file"
+      }
+    }
+
     const fileData = {
       name: filename,
       path: `/docs/${filename}`,
       size: `${Math.round(stats.size / 1024)} KB`,
       lastModified: new Date().toISOString().split("T")[0],
-      type: "presentation",
+      type: getFileType(fileExtension),
     }
 
     return NextResponse.json({

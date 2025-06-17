@@ -17,7 +17,17 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import type { FileData, WizardData } from "@/components/wizard"
-import { Upload, RefreshCw, ArrowLeft, ArrowRight, Loader2, FileIcon as FilePresentation, Trash2 } from "lucide-react"
+import {
+  Upload,
+  RefreshCw,
+  ArrowLeft,
+  ArrowRight,
+  Loader2,
+  FileIcon as FilePresentation,
+  Trash2,
+  FileText,
+  File,
+} from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Card, CardContent } from "@/components/ui/card"
 
@@ -38,6 +48,14 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
   const [error, setError] = useState<string | null>(null)
   const [fileToDelete, setFileToDelete] = useState<FileData | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+
+  // Obtener configuración de archivos permitidos
+  const allowedExtensions = process.env.NEXT_PUBLIC_ALLOWED_FILE_EXTENSIONS?.split(",").map((ext) =>
+    ext.trim().toLowerCase(),
+  ) || ["pptx"]
+  const allowedExtensionsText = allowedExtensions.map((ext) => ext.toUpperCase()).join(", ")
+  const acceptAttribute = allowedExtensions.map((ext) => `.${ext}`).join(",")
+  const maxFileSizeMB = Number.parseInt(process.env.NEXT_PUBLIC_MAX_FILE_SIZE_MB || "50")
 
   // Load files from docs directory on component mount and refresh
   useEffect(() => {
@@ -106,10 +124,19 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Check if file is a PPTX
+    // Check if file extension is allowed
     const fileExtension = file.name.split(".").pop()?.toLowerCase()
-    if (fileExtension !== "pptx") {
-      alert("Only PPTX files are allowed")
+    if (!fileExtension || !allowedExtensions.includes(fileExtension)) {
+      alert(`Only ${allowedExtensionsText} files are allowed`)
+      // Reset the file input
+      e.target.value = ""
+      return
+    }
+
+    // Check file size
+    const maxFileSizeBytes = maxFileSizeMB * 1024 * 1024
+    if (file.size > maxFileSizeBytes) {
+      alert(`File size exceeds the maximum limit of ${maxFileSizeMB}MB`)
       // Reset the file input
       e.target.value = ""
       return
@@ -271,6 +298,20 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
     await generateSOW()
   }
 
+  // Función para obtener el ícono apropiado según el tipo de archivo
+  const getFileIcon = (fileType: string) => {
+    switch (fileType) {
+      case "presentation":
+        return <FilePresentation className="h-5 w-5 text-muted-foreground" />
+      case "pdf":
+        return <FileText className="h-5 w-5 text-red-500" />
+      case "document":
+        return <FileText className="h-5 w-5 text-blue-500" />
+      default:
+        return <File className="h-5 w-5 text-muted-foreground" />
+    }
+  }
+
   return (
     <div className="space-y-8">
       <div className="space-y-4">
@@ -293,7 +334,7 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
               <FilePresentation className="h-12 w-12 text-muted-foreground mb-4" />
               <h4 className="text-lg font-medium mb-2">No documents found</h4>
               <p className="text-sm text-muted-foreground">
-                Use the Upload Document button below to add PPTX files to the docs folder
+                Use the Upload Document button below to add {allowedExtensionsText} files to the docs folder
               </p>
             </div>
           ) : (
@@ -313,7 +354,7 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
                           handleFileSelect(file, !wizardData.selectedFiles.some((f) => f.path === file.path))
                         }
                       >
-                        <FilePresentation className="h-5 w-5 text-muted-foreground" />
+                        {getFileIcon(file.type)}
                         <div className="flex-1">
                           <Label htmlFor={file.path} className="font-medium cursor-pointer">
                             {file.name}
@@ -347,7 +388,13 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
             <label className="cursor-pointer">
               <Upload className="h-4 w-4" />
               Upload Document
-              <input type="file" className="hidden" onChange={handleFileUpload} disabled={isUploading} accept=".pptx" />
+              <input
+                type="file"
+                className="hidden"
+                onChange={handleFileUpload}
+                disabled={isUploading}
+                accept={acceptAttribute}
+              />
             </label>
           </Button>
           {isUploading && (
@@ -361,6 +408,10 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
               <p className="text-sm text-green-600">Document uploaded to docs folder</p>
             </div>
           )}
+        </div>
+
+        <div className="text-xs text-muted-foreground">
+          Allowed file types: {allowedExtensionsText} • Maximum file size: {maxFileSizeMB}MB
         </div>
       </div>
 
