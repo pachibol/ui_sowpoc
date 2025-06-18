@@ -1,81 +1,89 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { ContractSelectionStep } from "@/components/contract-selection-step"
-import { ProposalsSelectionStep } from "@/components/proposals-selection-step"
-import { SowReportStep } from "@/components/sow-report-step"
+import { useState } from "react"
+import { ContractSelectionStep } from "./contract-selection-step"
+import { ProposalsSelectionStep } from "./proposals-selection-step"
+import { SowReportStep } from "./sow-report-step"
 import { Progress } from "@/components/ui/progress"
 
-export type ContractType = "time_and_materials" | "agile_scrum" | "change_requests" | "generic_sows"
-export type FileData = { name: string; path: string; size: string; lastModified: string; type: string }
-
-export interface WizardData {
-  selectedContractType: ContractType | null
-  selectedFiles: FileData[]
-  uploadedFiles: FileData[]
-  generatedSowText?: string
-  generatedSowFile?: string // Nueva propiedad para el archivo DOCX generado
+export interface FileData {
+  name: string
+  path: string
+  size: string
+  lastModified: string
+  type: string
 }
 
+export interface WizardData {
+  selectedContractType: string | null
+  selectedFiles: FileData[]
+  uploadedFiles: FileData[]
+  generatedSowText: string
+  generatedSowFile?: string
+  generatedPdfPath?: string
+}
+
+const steps = [
+  { id: 1, title: "Contract Type", description: "Select the type of contract" },
+  { id: 2, title: "Proposals", description: "Select proposal documents" },
+  { id: 3, title: "SOW Report", description: "Review generated SOW" },
+]
+
 export function Wizard() {
-  const [currentStep, setCurrentStep] = useState(0)
+  const [currentStep, setCurrentStep] = useState(1)
   const [wizardData, setWizardData] = useState<WizardData>({
     selectedContractType: null,
     selectedFiles: [],
     uploadedFiles: [],
+    generatedSowText: "",
   })
 
-  // Preserve state when navigating between steps
-  useEffect(() => {
-    // This ensures the component re-renders when the step changes
-    // and preserves the wizardData state
-  }, [currentStep])
+  const handleNext = () => {
+    if (currentStep < steps.length) {
+      setCurrentStep(currentStep + 1)
+    }
+  }
 
-  const steps = [
-    {
-      title: "Contract Selection",
-      component: (
-        <ContractSelectionStep
-          key="contract-step"
-          wizardData={wizardData}
-          setWizardData={setWizardData}
-          onNext={() => setCurrentStep(1)}
-        />
-      ),
-    },
-    {
-      title: "Proposals Selection",
-      component: (
-        <ProposalsSelectionStep
-          key="proposals-step"
-          wizardData={wizardData}
-          setWizardData={setWizardData}
-          onNext={() => setCurrentStep(2)}
-          onBack={() => setCurrentStep(0)}
-        />
-      ),
-    },
-    {
-      title: "Generated SOW",
-      component: <SowReportStep key="sow-step" wizardData={wizardData} onBack={() => setCurrentStep(1)} />,
-    },
-  ]
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1)
+    }
+  }
 
-  const progressPercentage = ((currentStep + 1) / steps.length) * 100
+  const progress = (currentStep / steps.length) * 100
 
   return (
-    <div className="max-w-4xl mx-auto border rounded-lg shadow-lg">
-      <div className="p-6 border-b">
-        <h2 className="text-xl font-semibold mb-2">{steps[currentStep].title}</h2>
-        <Progress value={progressPercentage} className="h-2" />
-        <div className="flex justify-between mt-2 text-sm text-muted-foreground">
-          <span>
-            Step {currentStep + 1} of {steps.length}
-          </span>
-          <span>{progressPercentage.toFixed(0)}% Complete</span>
-        </div>
+    <div className="max-w-4xl mx-auto p-6 space-y-8">
+      <div className="text-center space-y-2">
+        <h1 className="text-3xl font-bold">SOW Creator Wizard</h1>
+        <p className="text-muted-foreground">Create a Statement of Work based on your proposals and contract type</p>
       </div>
-      <div className="p-6">{steps[currentStep].component}</div>
+
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-semibold">{steps[currentStep - 1].title}</h2>
+          <span className="text-sm text-muted-foreground">
+            Step {currentStep} of {steps.length}
+          </span>
+        </div>
+        <Progress value={progress} className="w-full" />
+        <p className="text-sm text-muted-foreground">{steps[currentStep - 1].description}</p>
+      </div>
+
+      <div className="min-h-[500px]">
+        {currentStep === 1 && (
+          <ContractSelectionStep wizardData={wizardData} setWizardData={setWizardData} onNext={handleNext} />
+        )}
+        {currentStep === 2 && (
+          <ProposalsSelectionStep
+            wizardData={wizardData}
+            setWizardData={setWizardData}
+            onNext={handleNext}
+            onBack={handleBack}
+          />
+        )}
+        {currentStep === 3 && <SowReportStep wizardData={wizardData} onBack={handleBack} />}
+      </div>
     </div>
   )
 }

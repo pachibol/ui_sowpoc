@@ -228,11 +228,11 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
     loadFilesFromDocs()
   }
 
-  const processDocxFile = async (filePath: string): Promise<string> => {
-    console.log("Starting DOCX processing for file:", filePath)
+  const convertToPdf = async (filePath: string): Promise<string> => {
+    console.log("Starting PDF conversion for file:", filePath)
 
     try {
-      const response = await fetch("/api/process-docx", {
+      const response = await fetch("/api/convert-to-pdf", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -240,22 +240,19 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
         body: JSON.stringify({ filePath }),
       })
 
-      console.log("DOCX processing API response status:", response.status)
+      console.log("PDF conversion API response status:", response.status)
 
       const data = await response.json()
-      console.log("DOCX processing API response data:", data)
+      console.log("PDF conversion API response data:", data)
 
       if (response.ok && data.success) {
-        console.log("DOCX processing successful")
+        console.log("PDF conversion successful")
         if (data.debug) {
           console.log("Debug info:", data.debug)
         }
-        if (data.messages && data.messages.length > 0) {
-          console.log("Mammoth messages:", data.messages)
-        }
-        return data.html
+        return data.pdfPath
       } else {
-        console.error("DOCX processing failed:", data)
+        console.error("PDF conversion failed:", data)
         const errorDetails = [
           `Status: ${response.status}`,
           `Message: ${data.message}`,
@@ -266,14 +263,14 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
           .filter(Boolean)
           .join("\n")
 
-        throw new Error(`DOCX Processing Failed:\n${errorDetails}`)
+        throw new Error(`PDF Conversion Failed:\n${errorDetails}`)
       }
     } catch (error) {
-      console.error("Error in processDocxFile:", error)
+      console.error("Error in convertToPdf:", error)
       if (error instanceof Error) {
-        throw new Error(`DOCX Processing Error: ${error.message}`)
+        throw new Error(`PDF Conversion Error: ${error.message}`)
       }
-      throw new Error(`DOCX Processing Error: ${String(error)}`)
+      throw new Error(`PDF Conversion Error: ${String(error)}`)
     }
   }
 
@@ -331,17 +328,18 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
         throw new Error("No DOCX file received in API response. Expected 'sow_file' field in payload.")
       }
 
-      console.log("Processing DOCX file:", data.sow_file)
+      console.log("Converting DOCX to PDF:", data.sow_file)
 
-      // Procesar el archivo DOCX (sin fallback)
-      const htmlFromDocx = await processDocxFile(data.sow_file)
-      console.log("Successfully processed DOCX file, HTML length:", htmlFromDocx.length)
+      // Convertir DOCX a PDF
+      const pdfPath = await convertToPdf(data.sow_file)
+      console.log("Successfully converted to PDF:", pdfPath)
 
-      // Update wizard data with the processed DOCX content
+      // Update wizard data with the PDF path and original DOCX file
       setWizardData((prev) => ({
         ...prev,
-        generatedSowText: htmlFromDocx,
-        generatedSowFile: data.sow_file,
+        generatedSowText: "", // No necesitamos HTML ya que mostraremos PDF
+        generatedSowFile: data.sow_file, // DOCX original para descarga
+        generatedPdfPath: pdfPath, // PDF para visualización
       }))
 
       clearInterval(timerInterval)
