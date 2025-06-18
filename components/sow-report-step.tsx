@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import type { WizardData } from "@/components/wizard"
 import { ArrowLeft, Download, Loader2 } from "lucide-react"
-import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx"
+import { Document, Paragraph, TextRun, HeadingLevel } from "docx"
 
 interface SowReportStepProps {
   wizardData: WizardData
@@ -217,31 +217,35 @@ ${getPricingStructure(wizardData.selectedContractType)}
     }
   }
 
-  const handleDownload = async () => {
+  const handleDownloadDocx = async () => {
+    if (!wizardData.generatedSowFile) {
+      alert("No DOCX file available for download")
+      return
+    }
+
     setIsDownloading(true)
 
     try {
-      // Create a new document
-      const doc = createDocxFromMarkdown(getSowContent())
+      // Descargar el DOCX original
+      const response = await fetch(`/api/download-docx?file=${encodeURIComponent(wizardData.generatedSowFile)}`)
 
-      // Generate the DOCX file
-      const blob = await Packer.toBlob(doc)
+      if (!response.ok) {
+        throw new Error("Failed to download DOCX file")
+      }
 
-      // Create a download link
+      // Crear blob y descargar
+      const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      // Generate unique filename with timestamp
-      const now = new Date()
-      const timestamp = now.toISOString().replace(/[-:]/g, "").replace("T", "_").substring(0, 15) // YYYYMMDD_HHMMSS
-      a.download = `SOW_${timestamp}.docx`
+      a.download = wizardData.generatedSowFile
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
       window.URL.revokeObjectURL(url)
     } catch (error) {
-      console.error("Error generating DOCX:", error)
-      alert("Error generating DOCX file. Please try again.")
+      console.error("Error downloading DOCX:", error)
+      alert("Error downloading DOCX file. Please try again.")
     } finally {
       setIsDownloading(false)
     }
@@ -422,8 +426,22 @@ ${getPricingStructure(wizardData.selectedContractType)}
 
   return (
     <div className="space-y-6">
-      <div className="border rounded-md p-6 bg-muted/30 prose prose-sm max-w-none max-h-96 overflow-y-auto">
-        <div className="markdown" dangerouslySetInnerHTML={{ __html: markdownToHtml(getSowContent()) }} />
+      <div className="border rounded-md bg-muted/30">
+        {wizardData.generatedPdfPath ? (
+          <div className="w-full h-[600px]">
+            <iframe
+              src={`/api/pdf?file=${encodeURIComponent(wizardData.generatedPdfPath)}`}
+              className="w-full h-full border-0 rounded-md"
+              title="SOW PDF Viewer"
+            />
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-96">
+            <div className="text-center">
+              <p className="text-muted-foreground">No PDF available to display</p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="pt-6 border-t flex justify-between">
@@ -431,11 +449,15 @@ ${getPricingStructure(wizardData.selectedContractType)}
           <ArrowLeft className="h-4 w-4" />
           Back to Proposals
         </Button>
-        <Button onClick={handleDownload} disabled={isDownloading} className="flex items-center gap-2">
+        <Button
+          onClick={handleDownloadDocx}
+          disabled={isDownloading || !wizardData.generatedSowFile}
+          className="flex items-center gap-2"
+        >
           {isDownloading ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Generating DOCX...
+              Downloading...
             </>
           ) : (
             <>
@@ -447,22 +469,4 @@ ${getPricingStructure(wizardData.selectedContractType)}
       </div>
     </div>
   )
-}
-
-// Simple markdown to HTML converter
-function markdownToHtml(markdown: string): string {
-  return markdown
-    .replace(/^# (.*$)/gm, "<h1 class='text-2xl font-bold mb-4'>$1</h1>")
-    .replace(/^## (.*$)/gm, "<h2 class='text-xl font-semibold mb-3 mt-6'>$1</h2>")
-    .replace(/^### (.*$)/gm, "<h3 class='text-lg font-medium mb-2 mt-4'>$1</h3>")
-    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*(.*?)\*/g, "<em>$1</em>")
-    .replace(/^- (.*$)/gm, "<li class='ml-4'>$1</li>")
-    .replace(/^(\d+)\. (.*$)/gm, "<li class='ml-4'>$2</li>")
-    .replace(/<\/li>\n<li/g, "</li><li")
-    .replace(/^<li/gm, "<ul class='list-disc mb-4'><li")
-    .replace(/<\/li>$/gm, "</li></ul>")
-    .replace(/<\/ul>\n<ul[^>]*>/g, "")
-    .replace(/\n\n/g, "<br/><br/>")
-    .replace(/\n/g, "<br/>")
 }
