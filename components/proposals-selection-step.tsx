@@ -253,7 +253,7 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
         if (data.messages && data.messages.length > 0) {
           console.log("Mammoth messages:", data.messages)
         }
-        return data.markdown
+        return data.html
       } else {
         console.error("DOCX processing failed:", data)
         const errorDetails = [
@@ -334,13 +334,13 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
       console.log("Processing DOCX file:", data.sow_file)
 
       // Procesar el archivo DOCX (sin fallback)
-      const markdownFromDocx = await processDocxFile(data.sow_file)
-      console.log("Successfully processed DOCX file, markdown length:", markdownFromDocx.length)
+      const htmlFromDocx = await processDocxFile(data.sow_file)
+      console.log("Successfully processed DOCX file, HTML length:", htmlFromDocx.length)
 
       // Update wizard data with the processed DOCX content
       setWizardData((prev) => ({
         ...prev,
-        generatedSowText: markdownFromDocx,
+        generatedSowText: htmlFromDocx,
         generatedSowFile: data.sow_file,
       }))
 
