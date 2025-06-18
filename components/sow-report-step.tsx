@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import type { WizardData } from "@/components/wizard"
 import { ArrowLeft, Download, Loader2 } from "lucide-react"
 import { Document, Paragraph, TextRun, HeadingLevel } from "docx"
-import { PdfViewer } from "@/components/pdf-viewer"
 
 interface SowReportStepProps {
   wizardData: WizardData
@@ -427,11 +426,28 @@ ${getPricingStructure(wizardData.selectedContractType)}
 
   return (
     <div className="space-y-6">
-      <PdfViewer
-        pdfPath={wizardData.generatedPdfPath || ""}
-        fileName={wizardData.generatedPdfPath}
-        onDownload={handleDownloadDocx}
-      />
+      {wizardData.generatedPdfPath ? (
+        <div className="w-full">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold mb-2">Generated SOW Document</h3>
+            <p className="text-sm text-muted-foreground">{wizardData.generatedPdfPath}</p>
+          </div>
+
+          <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
+            <iframe
+              src={`/api/pdf?file=${encodeURIComponent(wizardData.generatedPdfPath)}`}
+              className="w-full h-[800px] border-0"
+              title="SOW PDF Document"
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center justify-center h-96 border rounded-lg bg-muted/10">
+          <div className="text-center">
+            <p className="text-muted-foreground">No PDF available to display</p>
+          </div>
+        </div>
+      )}
 
       <div className="pt-6 border-t flex justify-between">
         <Button variant="outline" onClick={onBack} className="flex items-center gap-1">

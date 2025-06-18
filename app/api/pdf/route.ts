@@ -26,17 +26,11 @@ export async function GET(request: NextRequest) {
 
     console.log(`Serving PDF: ${fileName}, Size: ${pdfBuffer.length} bytes`)
 
-    // Devolver el PDF con headers optimizados para visualización
+    // Devolver el PDF con headers básicos para visualización directa
     return new NextResponse(pdfBuffer, {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `inline; filename="${fileName}"`,
-        "Content-Length": pdfBuffer.length.toString(),
-        "Cache-Control": "public, max-age=3600, immutable",
-        "Accept-Ranges": "bytes",
-        "X-Content-Type-Options": "nosniff",
-        "Cross-Origin-Embedder-Policy": "require-corp",
-        "Cross-Origin-Resource-Policy": "cross-origin",
       },
     })
   } catch (error) {
