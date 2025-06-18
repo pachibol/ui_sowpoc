@@ -2,10 +2,10 @@ import { type NextRequest, NextResponse } from "next/server"
 import { readFile, mkdir } from "fs/promises"
 import { existsSync } from "fs"
 import path from "path"
-import { exec } from "child_process"
-import { promisify } from "util"
+import { detectLibreOffice, convertDocxToPdf } from "@/lib/libreoffice-utils"
 
-const execAsync = promisify(exec)
+// Cache para la detección de LibreOffice (evitar detectar en cada request)
+let libreOfficeCache: { path: string; version?: string; available: boolean } | null = null
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,44 +51,53 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Verificar que LibreOffice está disponible
-    try {
-      await execAsync("libreoffice --version")
-      console.log("LibreOffice is available")
-    } catch (error) {
-      console.error("LibreOffice not found:", error)
+    // Detectar LibreOffice (usar cache si está disponible)
+    if (!libreOfficeCache) {
+      console.log("Detecting LibreOffice installation...")
+      libreOfficeCache = await detectLibreOffice()
+    }
+
+    if (!libreOfficeCache.available) {
+      console.error("LibreOffice not found on system")
       return NextResponse.json(
         {
           success: false,
-          message: "LibreOffice is not installed or not available in PATH",
-          error: "LibreOffice not found",
+          message: "LibreOffice is not installed or not found",
+          error: "LibreOffice not available",
+          help: {
+            macOS: "Install with: brew install --cask libreoffice",
+            linux: "Install with: sudo apt install libreoffice",
+            windows: "Download from: https://www.libreoffice.org/download/",
+          },
         },
         { status: 500 },
       )
     }
 
+    console.log(`Using LibreOffice at: ${libreOfficeCache.path}`)
+    console.log(`LibreOffice version: ${libreOfficeCache.version}`)
+
     // Convertir DOCX a PDF usando LibreOffice
     console.log("Starting LibreOffice conversion...")
-    const command = `libreoffice --headless --convert-to pdf --outdir "${convertedDir}" "${docxPath}"`
-
-    console.log("Executing command:", command)
 
     try {
-      const { stdout, stderr } = await execAsync(command, {
-        timeout: 30000, // 30 segundos timeout
-      })
-
-      console.log("LibreOffice stdout:", stdout)
-      if (stderr) {
-        console.log("LibreOffice stderr:", stderr)
-      }
+      await convertDocxToPdf(libreOfficeCache.path, docxPath, convertedDir)
+      console.log("LibreOffice conversion completed")
     } catch (execError) {
       console.error("LibreOffice execution error:", execError)
+
+      // Limpiar cache en caso de error (puede que la instalación haya cambiado)
+      libreOfficeCache = null
+
       return NextResponse.json(
         {
           success: false,
           message: "Error executing LibreOffice conversion",
           error: execError instanceof Error ? execError.message : "Unknown execution error",
+          debug: {
+            libreOfficePath: libreOfficeCache?.path,
+            command: "LibreOffice conversion",
+          },
         },
         { status: 500 },
       )
@@ -105,6 +114,7 @@ export async function POST(request: NextRequest) {
             expectedPath: pdfPath,
             docxPath,
             convertedDir,
+            libreOfficePath: libreOfficeCache.path,
           },
         },
         { status: 500 },
@@ -124,10 +134,16 @@ export async function POST(request: NextRequest) {
         pdfPath,
         pdfSize: pdfStats.length,
         method: "LibreOffice",
+        libreOfficePath: libreOfficeCache.path,
+        version: libreOfficeCache.version,
       },
     })
   } catch (error) {
     console.error("Detailed error converting DOCX to PDF:", error)
+
+    // Limpiar cache en caso de error general
+    libreOfficeCache = null
+
     return NextResponse.json(
       {
         success: false,
