@@ -18,9 +18,14 @@ Una interfaz en React + Next.js para generar documentos SOW (Statement of Work) 
 ### Instalación
 
 \`\`\`bash
-npm install docx --legacy-peer-deps
+npm install docx mammoth puppeteer --legacy-peer-deps
 \`\`\`
 
+Also run:
+
+\`\`\`bash
+npm audit fix --force
+\`\`\`
 ## Test Backend (FastAPI)
 
 Se puede opcionalmente levantar un endpoint para probar la integración con el frontend:
