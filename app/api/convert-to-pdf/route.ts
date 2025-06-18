@@ -1,9 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { readFile, writeFile, mkdir } from "fs/promises"
+import { readFile, mkdir } from "fs/promises"
 import { existsSync } from "fs"
 import path from "path"
-import mammoth from "mammoth"
-import puppeteer from "puppeteer"
+import { exec } from "child_process"
+import { promisify } from "util"
+
+const execAsync = promisify(exec)
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,7 +21,7 @@ export async function POST(request: NextRequest) {
     const pdfFileName = filePath.replace(/\.docx$/i, ".pdf")
     const pdfPath = path.join(convertedDir, pdfFileName)
 
-    console.log("Converting DOCX to PDF:", { docxPath, pdfPath })
+    console.log("Converting DOCX to PDF with LibreOffice:", { docxPath, pdfPath })
 
     // Verificar que el archivo DOCX existe
     if (!existsSync(docxPath)) {
@@ -49,132 +51,81 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Leer y convertir DOCX a HTML
-    console.log("Reading DOCX file...")
-    const buffer = await readFile(docxPath)
+    // Verificar que LibreOffice está disponible
+    try {
+      await execAsync("libreoffice --version")
+      console.log("LibreOffice is available")
+    } catch (error) {
+      console.error("LibreOffice not found:", error)
+      return NextResponse.json(
+        {
+          success: false,
+          message: "LibreOffice is not installed or not available in PATH",
+          error: "LibreOffice not found",
+        },
+        { status: 500 },
+      )
+    }
 
-    console.log("Converting DOCX to HTML...")
-    const result = await mammoth.convertToHtml({
-      buffer,
-      options: {
-        includeDefaultStyleMap: true,
-        includeEmbeddedStyleMap: true,
-        convertImage: mammoth.images.imgElement((image) =>
-          image.read("base64").then((imageBuffer) => ({
-            src: "data:" + image.contentType + ";base64," + imageBuffer,
-          })),
-        ),
-      },
-    })
+    // Convertir DOCX a PDF usando LibreOffice
+    console.log("Starting LibreOffice conversion...")
+    const command = `libreoffice --headless --convert-to pdf --outdir "${convertedDir}" "${docxPath}"`
 
-    const htmlContent = result.value
-    console.log("HTML conversion successful, length:", htmlContent.length)
-
-    // Crear HTML completo con estilos para PDF
-    const fullHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <style>
-        body {
-            font-family: 'Times New Roman', serif;
-            font-size: 12pt;
-            line-height: 1.5;
-            margin: 1in;
-            color: #000;
-        }
-        h1, h2, h3, h4, h5, h6 {
-            color: #000;
-            margin-top: 1em;
-            margin-bottom: 0.5em;
-        }
-        h1 { font-size: 18pt; font-weight: bold; }
-        h2 { font-size: 16pt; font-weight: bold; }
-        h3 { font-size: 14pt; font-weight: bold; }
-        p { margin-bottom: 1em; }
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin: 1em 0;
-        }
-        th, td {
-            border: 1px solid #000;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #f0f0f0;
-            font-weight: bold;
-        }
-        ul, ol {
-            margin: 1em 0;
-            padding-left: 2em;
-        }
-        li {
-            margin-bottom: 0.5em;
-        }
-        strong, b {
-            font-weight: bold;
-        }
-        em, i {
-            font-style: italic;
-        }
-        @page {
-            margin: 1in;
-            size: letter;
-        }
-        @media print {
-            body { margin: 0; }
-        }
-    </style>
-</head>
-<body>
-    ${htmlContent}
-</body>
-</html>`
-
-    // Convertir HTML a PDF usando Puppeteer
-    console.log("Launching Puppeteer...")
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    })
+    console.log("Executing command:", command)
 
     try {
-      const page = await browser.newPage()
-      await page.setContent(fullHtml, { waitUntil: "networkidle0" })
-
-      console.log("Generating PDF...")
-      const pdfBuffer = await page.pdf({
-        format: "A4",
-        margin: {
-          top: "1in",
-          right: "1in",
-          bottom: "1in",
-          left: "1in",
-        },
-        printBackground: true,
+      const { stdout, stderr } = await execAsync(command, {
+        timeout: 30000, // 30 segundos timeout
       })
 
-      // Guardar PDF
-      await writeFile(pdfPath, pdfBuffer)
-      console.log("PDF saved successfully:", pdfPath)
-
-      return NextResponse.json({
-        success: true,
-        pdfPath: pdfFileName,
-        message: "PDF converted successfully",
-        debug: {
-          docxPath,
-          pdfPath,
-          htmlLength: htmlContent.length,
-          pdfSize: pdfBuffer.length,
+      console.log("LibreOffice stdout:", stdout)
+      if (stderr) {
+        console.log("LibreOffice stderr:", stderr)
+      }
+    } catch (execError) {
+      console.error("LibreOffice execution error:", execError)
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Error executing LibreOffice conversion",
+          error: execError instanceof Error ? execError.message : "Unknown execution error",
         },
-      })
-    } finally {
-      await browser.close()
+        { status: 500 },
+      )
     }
+
+    // Verificar que el PDF fue creado
+    if (!existsSync(pdfPath)) {
+      console.error("PDF was not created at expected path:", pdfPath)
+      return NextResponse.json(
+        {
+          success: false,
+          message: "PDF conversion failed - file was not created",
+          debug: {
+            expectedPath: pdfPath,
+            docxPath,
+            convertedDir,
+          },
+        },
+        { status: 500 },
+      )
+    }
+
+    // Obtener información del archivo PDF creado
+    const pdfStats = await readFile(pdfPath)
+    console.log("PDF created successfully, size:", pdfStats.length, "bytes")
+
+    return NextResponse.json({
+      success: true,
+      pdfPath: pdfFileName,
+      message: "PDF converted successfully with LibreOffice",
+      debug: {
+        docxPath,
+        pdfPath,
+        pdfSize: pdfStats.length,
+        method: "LibreOffice",
+      },
+    })
   } catch (error) {
     console.error("Detailed error converting DOCX to PDF:", error)
     return NextResponse.json(

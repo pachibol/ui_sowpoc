@@ -229,7 +229,7 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
   }
 
   const convertToPdf = async (filePath: string): Promise<string> => {
-    console.log("Starting PDF conversion for file:", filePath)
+    console.log("Starting LibreOffice PDF conversion for file:", filePath)
 
     try {
       const response = await fetch("/api/convert-to-pdf", {
@@ -240,19 +240,19 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
         body: JSON.stringify({ filePath }),
       })
 
-      console.log("PDF conversion API response status:", response.status)
+      console.log("LibreOffice PDF conversion API response status:", response.status)
 
       const data = await response.json()
-      console.log("PDF conversion API response data:", data)
+      console.log("LibreOffice PDF conversion API response data:", data)
 
       if (response.ok && data.success) {
-        console.log("PDF conversion successful")
+        console.log("LibreOffice PDF conversion successful")
         if (data.debug) {
           console.log("Debug info:", data.debug)
         }
         return data.pdfPath
       } else {
-        console.error("PDF conversion failed:", data)
+        console.error("LibreOffice PDF conversion failed:", data)
         const errorDetails = [
           `Status: ${response.status}`,
           `Message: ${data.message}`,
@@ -263,14 +263,14 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
           .filter(Boolean)
           .join("\n")
 
-        throw new Error(`PDF Conversion Failed:\n${errorDetails}`)
+        throw new Error(`LibreOffice PDF Conversion Failed:\n${errorDetails}`)
       }
     } catch (error) {
-      console.error("Error in convertToPdf:", error)
+      console.error("Error in LibreOffice convertToPdf:", error)
       if (error instanceof Error) {
-        throw new Error(`PDF Conversion Error: ${error.message}`)
+        throw new Error(`LibreOffice PDF Conversion Error: ${error.message}`)
       }
-      throw new Error(`PDF Conversion Error: ${String(error)}`)
+      throw new Error(`LibreOffice PDF Conversion Error: ${String(error)}`)
     }
   }
 
@@ -328,11 +328,11 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
         throw new Error("No DOCX file received in API response. Expected 'sow_file' field in payload.")
       }
 
-      console.log("Converting DOCX to PDF:", data.sow_file)
+      console.log("Converting DOCX to PDF with LibreOffice:", data.sow_file)
 
-      // Convertir DOCX a PDF
+      // Convertir DOCX a PDF usando LibreOffice
       const pdfPath = await convertToPdf(data.sow_file)
-      console.log("Successfully converted to PDF:", pdfPath)
+      console.log("Successfully converted to PDF with LibreOffice:", pdfPath)
 
       // Update wizard data with the PDF path and original DOCX file
       setWizardData((prev) => ({
