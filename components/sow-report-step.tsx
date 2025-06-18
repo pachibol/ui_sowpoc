@@ -98,26 +98,19 @@ export function SowReportStep({ wizardData, onBack }: SowReportStepProps) {
       {wizardData.generatedPdfPath ? (
         <div className="w-full">
           <div className="mb-4">
-            <h3 className="text-lg font-semibold mb-2">Preview</h3>
-            <div className="text-sm text-muted-foreground space-y-1">
-              <p>
-                <strong>Contract Type:</strong> {getContractTypeLabel(wizardData.selectedContractType)}
-              </p>
-              <p>
-                <strong>Selected Documents:</strong>
-              </p>
-              <ul className="ml-4 list-disc">
-                {wizardData.selectedFiles.map((file, index) => (
-                  <li key={index}>{file.name}</li>
-                ))}
-              </ul>
+            <h3 className="text-lg font-semibold mb-3">Preview</h3>
+            <div className="text-sm text-muted-foreground">
+              <span className="font-medium">Contract Type:</span>{" "}
+              {getContractTypeLabel(wizardData.selectedContractType)} •
+              <span className="font-medium ml-2">Selected Documents:</span>{" "}
+              {wizardData.selectedFiles.map((f) => f.name).join(", ")}
             </div>
           </div>
 
           <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
             <iframe
               src={`/api/pdf?file=${encodeURIComponent(wizardData.generatedPdfPath)}#navpanes=0&toolbar=1&view=FitH`}
-              className="w-full h-[800px] border-0"
+              className="w-full h-[900px] border-0"
               title="SOW PDF Document"
             />
           </div>

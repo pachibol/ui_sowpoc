@@ -2,13 +2,18 @@ import { NextResponse } from "next/server"
 import { readdir, stat } from "fs/promises"
 import { existsSync } from "fs"
 import path from "path"
+import { getDocumentPaths, ensureDocumentDirectories } from "@/lib/document-paths"
 
 export async function GET() {
   try {
-    const docsPath = path.join(process.cwd(), "docs")
+    // Asegurar que los directorios existen
+    await ensureDocumentDirectories()
 
-    // Verificar si el directorio docs existe
-    if (!existsSync(docsPath)) {
+    const paths = getDocumentPaths()
+    const inputPath = paths.input
+
+    // Verificar si el directorio input existe
+    if (!existsSync(inputPath)) {
       return NextResponse.json({ files: [] })
     }
 
@@ -17,7 +22,7 @@ export async function GET() {
       ext.trim().toLowerCase(),
     ) || ["pptx"]
 
-    const files = await readdir(docsPath)
+    const files = await readdir(inputPath)
 
     // Filtrar archivos por extensiones permitidas y obtener información
     const fileData = await Promise.all(
@@ -27,7 +32,7 @@ export async function GET() {
           return extension && allowedExtensions.includes(extension)
         })
         .map(async (file) => {
-          const filePath = path.join(docsPath, file)
+          const filePath = path.join(inputPath, file)
           const stats = await stat(filePath)
           const extension = file.split(".").pop()?.toLowerCase() || ""
 
@@ -42,6 +47,9 @@ export async function GET() {
               case "docx":
               case "doc":
                 return "document"
+              case "xlsx":
+              case "xls":
+                return "spreadsheet"
               default:
                 return "file"
             }
@@ -49,7 +57,7 @@ export async function GET() {
 
           return {
             name: file,
-            path: `/docs/${file}`,
+            path: `/input/${file}`,
             size: `${Math.round(stats.size / 1024)} KB`,
             lastModified: stats.mtime.toISOString().split("T")[0],
             type: getFileType(extension),
@@ -60,6 +68,6 @@ export async function GET() {
     return NextResponse.json({ files: fileData })
   } catch (error) {
     console.error("Error reading files:", error)
-    return NextResponse.json({ success: false, message: "Error reading files from docs directory" }, { status: 500 })
+    return NextResponse.json({ success: false, message: "Error reading files from input directory" }, { status: 500 })
   }
 }

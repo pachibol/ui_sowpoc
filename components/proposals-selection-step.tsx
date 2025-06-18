@@ -386,17 +386,18 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
   }
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-4">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* Lista de archivos - 2/3 del ancho */}
+      <div className="lg:col-span-2 space-y-6">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium">Select Proposal Documents</h3>
+          <h3 className="text-lg font-medium">Available Documents</h3>
           <Button variant="outline" size="sm" onClick={refreshFileList} className="flex items-center gap-1">
             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             Refresh
           </Button>
         </div>
 
-        <ScrollArea className="h-80 border rounded-md">
+        <ScrollArea className="h-96 border rounded-md">
           {isLoading ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -413,20 +414,24 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
           ) : (
             <div className="p-4 space-y-2">
               {availableFiles.map((file) => (
-                <Card key={file.path} className="hover:bg-muted/50 transition-colors">
+                <Card
+                  key={file.path}
+                  className={`cursor-pointer transition-colors ${
+                    wizardData.selectedFiles.some((f) => f.path === file.path)
+                      ? "border-primary bg-primary/5"
+                      : "hover:bg-muted/50"
+                  }`}
+                  onClick={() => handleFileSelect(file, !wizardData.selectedFiles.some((f) => f.path === file.path))}
+                >
                   <CardContent className="p-3">
                     <div className="flex items-center space-x-3">
                       <Checkbox
                         id={file.path}
                         checked={wizardData.selectedFiles.some((f) => f.path === file.path)}
                         onCheckedChange={(checked) => handleFileSelect(file, checked === true)}
+                        onClick={(e) => e.stopPropagation()}
                       />
-                      <div
-                        className="flex items-center gap-2 flex-1 cursor-pointer"
-                        onClick={() =>
-                          handleFileSelect(file, !wizardData.selectedFiles.some((f) => f.path === file.path))
-                        }
-                      >
+                      <div className="flex items-center gap-2 flex-1">
                         {getFileIcon(file.type)}
                         <div className="flex-1">
                           <Label htmlFor={file.path} className="font-medium cursor-pointer">
@@ -456,7 +461,7 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
           )}
         </ScrollArea>
 
-        <div className="flex items-center gap-4 mt-4">
+        <div className="flex items-center gap-4">
           <Button variant="outline" className="flex items-center gap-2" asChild>
             <label className="cursor-pointer">
               <Upload className="h-4 w-4" />
@@ -478,7 +483,7 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
           )}
           {uploadSuccess && (
             <div className="flex items-center gap-2">
-              <p className="text-sm text-green-600">Document uploaded to docs folder</p>
+              <p className="text-sm text-green-600">Document uploaded successfully</p>
             </div>
           )}
         </div>
@@ -488,32 +493,52 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
         </div>
       </div>
 
-      {!isLoading && availableFiles.length > 0 && wizardData.selectedFiles.length === 0 && (
-        <Alert>
-          <AlertDescription>Please select at least one document to continue</AlertDescription>
-        </Alert>
-      )}
+      {/* Panel lateral - 1/3 del ancho */}
+      <div className="space-y-6">
+        <div className="bg-muted/30 p-4 rounded-lg">
+          <h4 className="font-medium mb-3">Selection Summary</h4>
 
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+          {wizardData.selectedContractType && (
+            <div className="mb-3">
+              <span className="text-sm font-medium">Contract Type: </span>
+              <span className="text-sm text-muted-foreground">
+                {wizardData.selectedContractType === "time_and_materials" && "Time and Materials"}
+                {wizardData.selectedContractType === "agile_scrum" && "Agile Scrum"}
+                {wizardData.selectedContractType === "change_requests" && "Change Requests to SOW"}
+                {wizardData.selectedContractType === "generic_sows" && "Generic SOWs"}
+              </span>
+            </div>
+          )}
 
-      {wizardData.selectedFiles.length > 0 && (
-        <div className="bg-muted/30 p-4 rounded-md">
-          <h4 className="font-medium mb-2">Selected Documents ({wizardData.selectedFiles.length})</h4>
-          <div className="space-y-1">
-            {wizardData.selectedFiles.map((file) => (
-              <p key={file.path} className="text-sm text-muted-foreground">
-                • {file.name}
-              </p>
-            ))}
-          </div>
+          {wizardData.selectedFiles.length > 0 && (
+            <div>
+              <span className="text-sm font-medium">Selected Documents: </span>
+              <span className="text-sm text-muted-foreground">
+                {wizardData.selectedFiles.map((f) => f.name).join(", ")}
+              </span>
+            </div>
+          )}
+
+          {wizardData.selectedFiles.length === 0 && (
+            <p className="text-sm text-muted-foreground">No documents selected</p>
+          )}
         </div>
-      )}
 
-      <div className="pt-6 border-t flex justify-between">
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {!isLoading && availableFiles.length > 0 && wizardData.selectedFiles.length === 0 && (
+          <Alert>
+            <AlertDescription>Please select at least one document to continue</AlertDescription>
+          </Alert>
+        )}
+      </div>
+
+      {/* Botones de navegación - ancho completo */}
+      <div className="lg:col-span-3 pt-6 border-t flex justify-between">
         <Button variant="outline" onClick={onBack} className="flex items-center gap-2">
           <ArrowLeft className="h-4 w-4" />
           Back

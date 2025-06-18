@@ -1,7 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { writeFile, mkdir } from "fs/promises"
+import { writeFile } from "fs/promises"
 import { existsSync } from "fs"
 import path from "path"
+import { getDocumentPaths, ensureDocumentDirectories } from "@/lib/document-paths"
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,6 +12,12 @@ export async function POST(request: NextRequest) {
     if (!file) {
       return NextResponse.json({ success: false, message: "No file received" }, { status: 400 })
     }
+
+    // Asegurar que los directorios existen
+    await ensureDocumentDirectories()
+
+    const paths = getDocumentPaths()
+    const inputPath = paths.input
 
     // Obtener extensiones permitidas desde la configuración
     const allowedExtensions = process.env.NEXT_PUBLIC_ALLOWED_FILE_EXTENSIONS?.split(",").map((ext) =>
@@ -46,12 +53,6 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    // Crear el directorio docs si no existe
-    const docsPath = path.join(process.cwd(), "docs")
-    if (!existsSync(docsPath)) {
-      await mkdir(docsPath, { recursive: true })
-    }
-
     // Generar nombre único si el archivo ya existe
     const generateUniqueFilename = (originalName: string, directory: string) => {
       const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf("."))
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest) {
       return { filename: newName, fullPath: filePath }
     }
 
-    const { filename, fullPath } = generateUniqueFilename(file.name, docsPath)
+    const { filename, fullPath } = generateUniqueFilename(file.name, inputPath)
 
     // Escribir el archivo al sistema de archivos
     await writeFile(fullPath, buffer)
@@ -89,6 +90,9 @@ export async function POST(request: NextRequest) {
         case "docx":
         case "doc":
           return "document"
+        case "xlsx":
+        case "xls":
+          return "spreadsheet"
         default:
           return "file"
       }
@@ -96,7 +100,7 @@ export async function POST(request: NextRequest) {
 
     const fileData = {
       name: filename,
-      path: `/docs/${filename}`,
+      path: `/input/${filename}`,
       size: `${Math.round(stats.size / 1024)} KB`,
       lastModified: new Date().toISOString().split("T")[0],
       type: getFileType(fileExtension),

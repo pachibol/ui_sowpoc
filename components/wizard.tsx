@@ -24,8 +24,8 @@ export interface WizardData {
 }
 
 const steps = [
-  { id: 1, title: "Contract Type", description: "Select the type of contract" },
-  { id: 2, title: "Proposals", description: "Select proposal documents" },
+  { id: 1, title: "Select Contract Type", description: "Choose the type of contract" },
+  { id: 2, title: "Select Proposals", description: "Choose proposal documents" },
   { id: 3, title: "Generated SOW", description: "Review generated SOW" },
 ]
 
@@ -53,7 +53,7 @@ export function Wizard() {
   const progress = (currentStep / steps.length) * 100
 
   return (
-    <div className="max-w-4xl mx-auto border rounded-lg shadow-lg">
+    <div className="max-w-7xl mx-auto border rounded-lg shadow-lg">
       <div className="p-6 border-b">
         <h2 className="text-xl font-semibold mb-2">{steps[currentStep - 1].title}</h2>
         <Progress value={progress} className="h-2" />
@@ -64,7 +64,7 @@ export function Wizard() {
           <span>{progress.toFixed(0)}% Complete</span>
         </div>
       </div>
-      <div className="p-6">
+      <div className="p-8">
         {currentStep === 1 && (
           <ContractSelectionStep wizardData={wizardData} setWizardData={setWizardData} onNext={handleNext} />
         )}

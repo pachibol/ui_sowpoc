@@ -55,15 +55,12 @@ export function ContractSelectionStep({ wizardData, setWizardData, onNext }: Con
   }
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium">Select Contract Type</h3>
-        <p className="text-sm text-muted-foreground mb-6">Choose the contract model for this project (required)</p>
-
+    <div className="space-y-8 max-w-4xl mx-auto">
+      <div className="space-y-6">
         <RadioGroup
           value={wizardData.selectedContractType || ""}
           onValueChange={handleContractTypeChange}
-          className="space-y-4"
+          className="grid grid-cols-1 lg:grid-cols-2 gap-4"
         >
           {contractTypes.map((type) => (
             <Card
@@ -73,14 +70,14 @@ export function ContractSelectionStep({ wizardData, setWizardData, onNext }: Con
               }`}
               onClick={() => handleContractTypeChange(type.id)}
             >
-              <CardContent className="p-4">
+              <CardContent className="p-6">
                 <div className="flex items-start space-x-3">
                   <RadioGroupItem value={type.id} id={type.id} className="mt-1" />
                   <div className="flex-1">
-                    <Label htmlFor={type.id} className="text-base font-medium">
+                    <Label htmlFor={type.id} className="text-base font-medium cursor-pointer">
                       {type.label}
                     </Label>
-                    <p className="text-sm text-muted-foreground mt-1">{type.description}</p>
+                    <p className="text-sm text-muted-foreground mt-2">{type.description}</p>
                   </div>
                 </div>
               </CardContent>
