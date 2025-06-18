@@ -17,18 +17,26 @@ export async function GET(request: NextRequest) {
 
     // Verificar que el archivo existe
     if (!existsSync(pdfPath)) {
+      console.error(`PDF file not found: ${pdfPath}`)
       return NextResponse.json({ success: false, message: "PDF file not found" }, { status: 404 })
     }
 
     // Leer el archivo PDF
     const pdfBuffer = await readFile(pdfPath)
 
-    // Devolver el PDF con headers apropiados
+    console.log(`Serving PDF: ${fileName}, Size: ${pdfBuffer.length} bytes`)
+
+    // Devolver el PDF con headers optimizados para visualización
     return new NextResponse(pdfBuffer, {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `inline; filename="${fileName}"`,
-        "Cache-Control": "public, max-age=3600",
+        "Content-Length": pdfBuffer.length.toString(),
+        "Cache-Control": "public, max-age=3600, immutable",
+        "Accept-Ranges": "bytes",
+        "X-Content-Type-Options": "nosniff",
+        "Cross-Origin-Embedder-Policy": "require-corp",
+        "Cross-Origin-Resource-Policy": "cross-origin",
       },
     })
   } catch (error) {
