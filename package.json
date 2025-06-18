@@ -19,7 +19,7 @@
     "child_process": "latest",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "docx": "latest",
+    "docx": "^8.5.0",
     "fs": "latest",
     "lucide-react": "^0.454.0",
     "mammoth": "latest",

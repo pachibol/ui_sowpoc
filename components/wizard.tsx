@@ -26,7 +26,7 @@ export interface WizardData {
 const steps = [
   { id: 1, title: "Contract Type", description: "Select the type of contract" },
   { id: 2, title: "Proposals", description: "Select proposal documents" },
-  { id: 3, title: "SOW Report", description: "Review generated SOW" },
+  { id: 3, title: "Generated SOW", description: "Review generated SOW" },
 ]
 
 export function Wizard() {
