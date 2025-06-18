@@ -229,6 +229,8 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
   }
 
   const processDocxFile = async (filePath: string): Promise<string> => {
+    console.log("Starting DOCX processing for file:", filePath)
+
     try {
       const response = await fetch("/api/process-docx", {
         method: "POST",
@@ -238,17 +240,40 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
         body: JSON.stringify({ filePath }),
       })
 
+      console.log("DOCX processing API response status:", response.status)
+
       const data = await response.json()
+      console.log("DOCX processing API response data:", data)
 
       if (response.ok && data.success) {
+        console.log("DOCX processing successful")
+        if (data.debug) {
+          console.log("Debug info:", data.debug)
+        }
+        if (data.messages && data.messages.length > 0) {
+          console.log("Mammoth messages:", data.messages)
+        }
         return data.markdown
       } else {
-        console.error("Error processing DOCX:", data.message)
-        throw new Error(data.message || "Error processing DOCX file")
+        console.error("DOCX processing failed:", data)
+        const errorDetails = [
+          `Status: ${response.status}`,
+          `Message: ${data.message}`,
+          data.error ? `Error: ${data.error}` : null,
+          data.debug ? `Debug: ${JSON.stringify(data.debug)}` : null,
+          data.stack ? `Stack: ${data.stack}` : null,
+        ]
+          .filter(Boolean)
+          .join("\n")
+
+        throw new Error(`DOCX Processing Failed:\n${errorDetails}`)
       }
     } catch (error) {
-      console.error("Error processing DOCX file:", error)
-      throw error
+      console.error("Error in processDocxFile:", error)
+      if (error instanceof Error) {
+        throw new Error(`DOCX Processing Error: ${error.message}`)
+      }
+      throw new Error(`DOCX Processing Error: ${String(error)}`)
     }
   }
 
@@ -276,7 +301,7 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
 
       // Prepare the request payload - send the contract type as-is (already in snake_case)
       const payload = {
-        contract_type: wizardData.selectedContractType, // No need to convert, already in correct format
+        contract_type: wizardData.selectedContractType,
         filenames: wizardData.selectedFiles.map((file) => file.name),
       }
 
@@ -301,28 +326,22 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
       const data = await response.json()
       console.log("API response:", data)
 
-      let finalSowText = data.sow_text || ""
-
-      // Si hay un archivo DOCX en la respuesta, procesarlo
-      if (data.sow_file) {
-        console.log("Processing DOCX file:", data.sow_file)
-        try {
-          const markdownFromDocx = await processDocxFile(data.sow_file)
-          // Usar el contenido del DOCX en lugar del texto plano
-          finalSowText = markdownFromDocx
-          console.log("Successfully processed DOCX file")
-        } catch (docxError) {
-          console.error("Error processing DOCX file:", docxError)
-          // Si falla el procesamiento del DOCX, usar el texto plano como fallback
-          console.log("Falling back to sow_text from API response")
-        }
+      // Verificar que hay un archivo DOCX en la respuesta
+      if (!data.sow_file) {
+        throw new Error("No DOCX file received in API response. Expected 'sow_file' field in payload.")
       }
 
-      // Update wizard data with the generated SOW text (either from DOCX or fallback)
+      console.log("Processing DOCX file:", data.sow_file)
+
+      // Procesar el archivo DOCX (sin fallback)
+      const markdownFromDocx = await processDocxFile(data.sow_file)
+      console.log("Successfully processed DOCX file, markdown length:", markdownFromDocx.length)
+
+      // Update wizard data with the processed DOCX content
       setWizardData((prev) => ({
         ...prev,
-        generatedSowText: finalSowText,
-        generatedSowFile: data.sow_file, // Guardar también la referencia al archivo
+        generatedSowText: markdownFromDocx,
+        generatedSowFile: data.sow_file,
       }))
 
       clearInterval(timerInterval)
@@ -331,8 +350,22 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
     } catch (err) {
       clearInterval(timerInterval)
       setIsGenerating(false)
-      setError(err instanceof Error ? err.message : "An error occurred while generating the SOW")
-      console.error("Error generating SOW:", err)
+
+      // Crear mensaje de error detallado para debugging
+      let errorMessage = "Error generating SOW: "
+      if (err instanceof Error) {
+        errorMessage += err.message
+        console.error("Full error details:", {
+          message: err.message,
+          stack: err.stack,
+          name: err.name,
+        })
+      } else {
+        errorMessage += "Unknown error occurred"
+        console.error("Unknown error:", err)
+      }
+
+      setError(errorMessage)
     }
   }
 
