@@ -14,6 +14,7 @@ export interface WizardData {
   selectedFiles: FileData[]
   uploadedFiles: FileData[]
   generatedSowText?: string
+  generatedSowFile?: string // Nueva propiedad para el archivo DOCX generado
 }
 
 export function Wizard() {

@@ -228,6 +228,30 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
     loadFilesFromDocs()
   }
 
+  const processDocxFile = async (filePath: string): Promise<string> => {
+    try {
+      const response = await fetch("/api/process-docx", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ filePath }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.success) {
+        return data.markdown
+      } else {
+        console.error("Error processing DOCX:", data.message)
+        throw new Error(data.message || "Error processing DOCX file")
+      }
+    } catch (error) {
+      console.error("Error processing DOCX file:", error)
+      throw error
+    }
+  }
+
   const generateSOW = async () => {
     if (!wizardData.selectedContractType || wizardData.selectedFiles.length === 0) {
       return
@@ -277,10 +301,28 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
       const data = await response.json()
       console.log("API response:", data)
 
-      // Update wizard data with the generated SOW text
+      let finalSowText = data.sow_text || ""
+
+      // Si hay un archivo DOCX en la respuesta, procesarlo
+      if (data.sow_file) {
+        console.log("Processing DOCX file:", data.sow_file)
+        try {
+          const markdownFromDocx = await processDocxFile(data.sow_file)
+          // Usar el contenido del DOCX en lugar del texto plano
+          finalSowText = markdownFromDocx
+          console.log("Successfully processed DOCX file")
+        } catch (docxError) {
+          console.error("Error processing DOCX file:", docxError)
+          // Si falla el procesamiento del DOCX, usar el texto plano como fallback
+          console.log("Falling back to sow_text from API response")
+        }
+      }
+
+      // Update wizard data with the generated SOW text (either from DOCX or fallback)
       setWizardData((prev) => ({
         ...prev,
-        generatedSowText: data.sow_text,
+        generatedSowText: finalSowText,
+        generatedSowFile: data.sow_file, // Guardar también la referencia al archivo
       }))
 
       clearInterval(timerInterval)
