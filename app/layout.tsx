@@ -10,9 +10,9 @@ export const metadata: Metadata = {
   title: "SOW Generator - Globant",
   description: "Generate professional Statements of Work",
   icons: {
-    icon: "/logo_main.png",
+    icon: "/favicon.png",
   },
-    generator: 'v0.dev'
+    generator: 'globant'
 }
 
 export default function RootLayout({
