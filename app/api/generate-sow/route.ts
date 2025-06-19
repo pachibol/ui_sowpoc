@@ -64,6 +64,7 @@ export async function POST(request: NextRequest) {
     console.log("API Response received:", {
       hasDocxContent: !!apiResponse.docx_content,
       filename: apiResponse.filename,
+      hasCotText: !!apiResponse.cot_text,
     })
 
     if (!apiResponse.docx_content || !apiResponse.filename) {
@@ -107,6 +108,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       filename: uniqueFilename,
+      cotText: apiResponse.cot_text || null,
       message: "SOW generated successfully (regenerated)",
       debug: {
         originalFilename: apiResponse.filename,
@@ -115,6 +117,7 @@ export async function POST(request: NextRequest) {
         contractType,
         documentsCount: selectedDocuments.length,
         regenerated: true,
+        hasCotText: !!apiResponse.cot_text,
       },
     })
   } catch (error) {

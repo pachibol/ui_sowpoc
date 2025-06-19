@@ -17,15 +17,15 @@ A React + Next.js interface for automatically generating SOW (Statement of Work)
 
 ### Install
 
-```bash
+\`\`\`bash
 npm install docx mammoth puppeteer --legacy-peer-deps
-```
+\`\`\`
 
 Also run:
 
-```bash
+\`\`\`bash
 npm audit fix --force
-```
+\`\`\`
 
 ## LibreOffice installation
 
@@ -38,23 +38,23 @@ You can also optionally set up a mocked endpoint to test integration.
 
 Install dependencies:
 
-```bash
+\`\`\`bash
 pip install -r requirements.txt
-```
+\`\`\`
 
 Activate endpoint:
 
-```bash
+\`\`\`bash
 python test_endpoint.py
-```
+\`\`\`
 
 ## Execution
 
 In another terminal, run:
 
-```bash
+\`\`\`bash
 npm run dev
-```
+\`\`\`
 
 Open browser in:
 
@@ -65,18 +65,18 @@ http://localhost:3000
 
 Request:
 
-```json
+\`\`\`json
 {
   "contract_type": "time_and_materials",
   "filenames": ["document1.pptx", "document2.pptx"]
 }
-```
+\`\`\`
 
 Response:
-```json
+\`\`\`json
 {
 "sow_text": "Generated SOW text.",
 "sow_file": "generated_sow.docx"
 }
 
-```
+\`\`\`
