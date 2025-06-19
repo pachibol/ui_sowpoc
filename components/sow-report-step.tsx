@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -17,17 +17,6 @@ export function SowReportStep({ wizardData, onBack }: SowReportStepProps) {
   const [isDownloadingDocx, setIsDownloadingDocx] = useState(false)
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false)
   const [isExplanationOpen, setIsExplanationOpen] = useState(false)
-
-  // Debug logging para verificar el estado del cotText
-  useEffect(() => {
-    console.log("🔍 SOW Report Step - Wizard Data Debug:", {
-      hasCotText: !!wizardData.cotText,
-      cotTextType: typeof wizardData.cotText,
-      cotTextLength: wizardData.cotText ? wizardData.cotText.length : 0,
-      cotTextPreview: wizardData.cotText ? wizardData.cotText.substring(0, 50) + "..." : "No cotText",
-      fullWizardData: wizardData,
-    })
-  }, [wizardData])
 
   const getContractTypeLabel = (contractType: string | null) => {
     switch (contractType) {
@@ -110,64 +99,38 @@ export function SowReportStep({ wizardData, onBack }: SowReportStepProps) {
 
   return (
     <div className="space-y-6">
-      {/* Debug info - TEMPORAL para debugging */}
-      <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-md text-sm">
-        <strong>🐛 Debug Info:</strong>
-        <br />
-        Has cotText: {wizardData.cotText ? "✅ YES" : "❌ NO"}
-        <br />
-        cotText type: {typeof wizardData.cotText}
-        <br />
-        cotText length: {wizardData.cotText ? wizardData.cotText.length : 0}
-        <br />
-        cotText preview: {wizardData.cotText ? wizardData.cotText.substring(0, 100) + "..." : "No cotText available"}
-      </div>
-
-      {/* Chain of Thought Button - Prominente arriba */}
-      {wizardData.cotText && (
-        <div className="flex justify-center">
-          <Dialog open={isExplanationOpen} onOpenChange={setIsExplanationOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="flex items-center gap-2 px-6 py-2">
-                <Brain className="h-4 w-4" />
-                Chain Of Thought
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[80vh]">
-              <DialogHeader>
-                <DialogTitle>Chain Of Thought - SOW Generation Process</DialogTitle>
-              </DialogHeader>
-              <ScrollArea className="h-[60vh] w-full rounded-md border p-4">
-                <MarkdownRenderer content={wizardData.cotText} />
-              </ScrollArea>
-            </DialogContent>
-          </Dialog>
-        </div>
-      )}
-
-      {/* Botón de prueba - TEMPORAL para testing */}
-      <div className="flex justify-center">
-        <Button
-          variant="secondary"
-          onClick={() => {
-            console.log("🧪 Test button clicked - Current wizard data:", wizardData)
-            alert(`cotText available: ${!!wizardData.cotText}\nLength: ${wizardData.cotText?.length || 0}`)
-          }}
-        >
-          🧪 Test cotText Status
-        </Button>
-      </div>
-
       {wizardData.generatedPdfPath ? (
         <div className="w-full">
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold mb-3">Preview</h3>
-            <div className="text-sm text-muted-foreground">
-              <span className="font-medium">Contract Type:</span>{" "}
-              {getContractTypeLabel(wizardData.selectedContractType)} •
-              <span className="font-medium ml-2">Selected Documents:</span>{" "}
-              {wizardData.selectedFiles.map((f) => f.name).join(", ")}
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Preview</h3>
+              <div className="text-sm text-muted-foreground">
+                <span className="font-medium">Contract Type:</span>{" "}
+                {getContractTypeLabel(wizardData.selectedContractType)} •
+                <span className="font-medium ml-2">Selected Documents:</span>{" "}
+                {wizardData.selectedFiles.map((f) => f.name).join(", ")}
+              </div>
             </div>
+
+            {/* Chain of Thought Button - Arriba a la derecha del viewer */}
+            {wizardData.cotText && (
+              <Dialog open={isExplanationOpen} onOpenChange={setIsExplanationOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <Brain className="h-4 w-4" />
+                    Chain Of Thought
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[80vh]">
+                  <DialogHeader>
+                    <DialogTitle>Chain Of Thought - SOW Generation Process</DialogTitle>
+                  </DialogHeader>
+                  <ScrollArea className="h-[60vh] w-full rounded-md border p-4">
+                    <MarkdownRenderer content={wizardData.cotText} />
+                  </ScrollArea>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
 
           <div className="border rounded-lg overflow-hidden bg-white shadow-sm">

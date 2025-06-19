@@ -302,8 +302,8 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
         filenames: wizardData.selectedFiles.map((file) => file.name),
       }
 
-      console.log("🚀 Sending request to backend API:", apiEndpoint)
-      console.log("📤 Request payload:", JSON.stringify(payload, null, 2))
+      console.log("Sending request to backend API:", apiEndpoint)
+      console.log("Request payload:", JSON.stringify(payload, null, 2))
 
       // Make the API call using the full endpoint URL
       const response = await fetch(apiEndpoint, {
@@ -321,19 +321,12 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
       }
 
       const data = await response.json()
-      console.log("📥 Backend API response received:", JSON.stringify(data, null, 2))
+      console.log("Backend API response received:", JSON.stringify(data, null, 2))
 
       // Verificar que hay un archivo DOCX en la respuesta
       if (!data.sow_file) {
         throw new Error("No DOCX file received in API response. Expected 'sow_file' field in payload.")
       }
-
-      // Log específico para cot_text
-      console.log("🧠 Chain of Thought text received:", {
-        hasCotText: !!data.cot_text,
-        cotTextLength: data.cot_text ? data.cot_text.length : 0,
-        cotTextPreview: data.cot_text ? data.cot_text.substring(0, 100) + "..." : "No cot_text",
-      })
 
       console.log("Converting DOCX to PDF with LibreOffice:", data.sow_file)
 
@@ -342,7 +335,6 @@ export function ProposalsSelectionStep({ wizardData, setWizardData, onNext, onBa
       console.log("Successfully converted to PDF with LibreOffice:", pdfPath)
 
       // Update wizard data with ALL the data including cotText
-      console.log("🔄 Updating wizard data with cotText:", !!data.cot_text)
       setWizardData((prev) => ({
         ...prev,
         generatedSowText: data.sow_text || "", // SOW text if available
