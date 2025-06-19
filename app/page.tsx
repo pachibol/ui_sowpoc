@@ -1,24 +1,21 @@
-"use client"
 import { Wizard } from "@/components/wizard"
-import Image from "next/image"
 
 export default function Home() {
   return (
-    <main className="container mx-auto py-10 px-4">
-      <div className="max-w-4xl mx-auto mb-8">
-        <div className="flex items-end justify-between mb-8">
-          <Image
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/ey_logo-8a0DYdd8Ab7AQz242yzrXQkOk6UTRX.png"
-            alt="EY - Building a better working world"
-            width={100}
-            height={50}
-            className="object-contain ml-4"
-          />
-          <h1 className="text-2xl font-bold text-center flex-1 ml-4">SOW Creator Wizard</h1>
-          <div className="w-[100px]"></div> {/* Spacer to center the title */}
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="container mx-auto px-4">
+        {/* Header con logo */}
+        <div className="text-center mb-8">
+          <img src="/logo_main.png" alt="Globant" className="h-12 mx-auto mb-4" />
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">SOW Generator</h1>
+          <p className="text-gray-600 max-w-2xl mx-auto">
+            Generate professional Statements of Work by selecting your contract type and uploading relevant documents.
+          </p>
         </div>
+
+        {/* Wizard */}
+        <Wizard />
       </div>
-      <Wizard />
-    </main>
+    </div>
   )
 }
