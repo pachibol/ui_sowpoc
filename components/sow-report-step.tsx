@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { WizardData } from "@/components/wizard"
-import { ArrowLeft, Download, FileText, Loader2, Info } from "lucide-react"
+import { ArrowLeft, Download, FileText, Loader2, Brain } from "lucide-react"
 import { MarkdownRenderer } from "@/components/markdown-renderer"
 
 interface SowReportStepProps {
@@ -68,6 +68,7 @@ export function SowReportStep({ wizardData, onBack }: SowReportStepProps) {
   const handleDownloadPdf = async () => {
     if (!wizardData.generatedPdfPath) {
       alert("No PDF file available for download")
+      return
     }
 
     setIsDownloadingPdf(true)
@@ -98,37 +99,38 @@ export function SowReportStep({ wizardData, onBack }: SowReportStepProps) {
 
   return (
     <div className="space-y-6">
+      {/* Chain of Thought Button - Prominente arriba */}
+      {wizardData.cotText && (
+        <div className="flex justify-center">
+          <Dialog open={isExplanationOpen} onOpenChange={setIsExplanationOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2 px-6 py-2">
+                <Brain className="h-4 w-4" />
+                Chain Of Thought
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[80vh]">
+              <DialogHeader>
+                <DialogTitle>Chain Of Thought - SOW Generation Process</DialogTitle>
+              </DialogHeader>
+              <ScrollArea className="h-[60vh] w-full rounded-md border p-4">
+                <MarkdownRenderer content={wizardData.cotText} />
+              </ScrollArea>
+            </DialogContent>
+          </Dialog>
+        </div>
+      )}
+
       {wizardData.generatedPdfPath ? (
         <div className="w-full">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold mb-3">Preview</h3>
-              <div className="text-sm text-muted-foreground">
-                <span className="font-medium">Contract Type:</span>{" "}
-                {getContractTypeLabel(wizardData.selectedContractType)} •
-                <span className="font-medium ml-2">Selected Documents:</span>{" "}
-                {wizardData.selectedFiles.map((f) => f.name).join(", ")}
-              </div>
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold mb-3">Preview</h3>
+            <div className="text-sm text-muted-foreground">
+              <span className="font-medium">Contract Type:</span>{" "}
+              {getContractTypeLabel(wizardData.selectedContractType)} •
+              <span className="font-medium ml-2">Selected Documents:</span>{" "}
+              {wizardData.selectedFiles.map((f) => f.name).join(", ")}
             </div>
-
-            {wizardData.cotText && (
-              <Dialog open={isExplanationOpen} onOpenChange={setIsExplanationOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex items-center gap-2">
-                    <Info className="h-4 w-4" />
-                    Generation Explanation
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-4xl max-h-[80vh]">
-                  <DialogHeader>
-                    <DialogTitle>SOW Generation Explanation</DialogTitle>
-                  </DialogHeader>
-                  <ScrollArea className="h-[60vh] w-full rounded-md border p-4">
-                    <MarkdownRenderer content={wizardData.cotText} />
-                  </ScrollArea>
-                </DialogContent>
-              </Dialog>
-            )}
           </div>
 
           <div className="border rounded-lg overflow-hidden bg-white shadow-sm">

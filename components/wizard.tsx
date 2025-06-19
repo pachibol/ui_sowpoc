@@ -21,6 +21,7 @@ export interface WizardData {
   generatedSowText: string
   generatedSowFile?: string
   generatedPdfPath?: string
+  cotText?: string
 }
 
 const steps = [
