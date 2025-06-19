@@ -1,8 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { readFile, mkdir } from "fs/promises"
+import { readFile, unlink } from "fs/promises"
 import { existsSync } from "fs"
 import path from "path"
 import { detectLibreOffice, convertDocxToPdf } from "@/lib/libreoffice-utils"
+import { getDocumentPaths, ensureDocumentDirectories } from "@/lib/document-paths"
 
 // Cache para la detección de LibreOffice (evitar detectar en cada request)
 let libreOfficeCache: { path: string; version?: string; available: boolean } | null = null
@@ -15,11 +16,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: "File path is required" }, { status: 400 })
     }
 
-    // Construir rutas
-    const docxPath = path.join(process.cwd(), "docs", "generated_sows", filePath)
-    const convertedDir = path.join(process.cwd(), "docs", "converted_to_pdf")
+    // Obtener paths configurados
+    const paths = getDocumentPaths()
+    await ensureDocumentDirectories()
+
+    // Construir rutas usando la configuración
+    const docxPath = path.join(paths.generatedSows, filePath)
     const pdfFileName = filePath.replace(/\.docx$/i, ".pdf")
-    const pdfPath = path.join(convertedDir, pdfFileName)
+    const pdfPath = path.join(paths.convertedPdf, pdfFileName)
 
     console.log("Converting DOCX to PDF with LibreOffice:", { docxPath, pdfPath })
 
@@ -35,20 +39,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Crear directorio de PDFs convertidos si no existe
-    if (!existsSync(convertedDir)) {
-      await mkdir(convertedDir, { recursive: true })
-      console.log("Created converted_to_pdf directory")
-    }
-
-    // Verificar si el PDF ya existe
+    // ELIMINAR PDF EXISTENTE SI EXISTE (para regenerar siempre)
     if (existsSync(pdfPath)) {
-      console.log("PDF already exists, returning existing file")
-      return NextResponse.json({
-        success: true,
-        pdfPath: pdfFileName,
-        message: "PDF already exists",
-      })
+      console.log("Removing existing PDF to regenerate:", pdfPath)
+      try {
+        await unlink(pdfPath)
+        console.log("Existing PDF removed successfully")
+      } catch (unlinkError) {
+        console.warn("Could not remove existing PDF:", unlinkError)
+        // Continuar con la conversión aunque no se pueda eliminar
+      }
     }
 
     // Detectar LibreOffice (usar cache si está disponible)
@@ -77,11 +77,11 @@ export async function POST(request: NextRequest) {
     console.log(`Using LibreOffice at: ${libreOfficeCache.path}`)
     console.log(`LibreOffice version: ${libreOfficeCache.version}`)
 
-    // Convertir DOCX a PDF usando LibreOffice
-    console.log("Starting LibreOffice conversion...")
+    // Convertir DOCX a PDF usando LibreOffice (SIEMPRE REGENERAR)
+    console.log("Starting LibreOffice conversion (regenerating)...")
 
     try {
-      await convertDocxToPdf(libreOfficeCache.path, docxPath, convertedDir)
+      await convertDocxToPdf(libreOfficeCache.path, docxPath, paths.convertedPdf)
       console.log("LibreOffice conversion completed")
     } catch (execError) {
       console.error("LibreOffice execution error:", execError)
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
           debug: {
             expectedPath: pdfPath,
             docxPath,
-            convertedDir,
+            convertedDir: paths.convertedPdf,
             libreOfficePath: libreOfficeCache.path,
           },
         },
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       pdfPath: pdfFileName,
-      message: "PDF converted successfully with LibreOffice",
+      message: "PDF converted successfully with LibreOffice (regenerated)",
       debug: {
         docxPath,
         pdfPath,
@@ -136,6 +136,7 @@ export async function POST(request: NextRequest) {
         method: "LibreOffice",
         libreOfficePath: libreOfficeCache.path,
         version: libreOfficeCache.version,
+        regenerated: true,
       },
     })
   } catch (error) {
