@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ScrollArea } from "@/components/ui/scroll-area"
 import type { WizardData } from "@/components/wizard"
 import { ArrowLeft, Download, FileText, Loader2, Info } from "lucide-react"
-import { MarkdownRenderer } from "./markdown-renderer"
+import { MarkdownRenderer } from "@/components/markdown-renderer"
 
 interface SowReportStepProps {
   wizardData: WizardData
@@ -68,7 +68,6 @@ export function SowReportStep({ wizardData, onBack }: SowReportStepProps) {
   const handleDownloadPdf = async () => {
     if (!wizardData.generatedPdfPath) {
       alert("No PDF file available for download")
-      return
     }
 
     setIsDownloadingPdf(true)
