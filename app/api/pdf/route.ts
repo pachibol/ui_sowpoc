@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     console.log(`Serving PDF: ${fileName}, Size: ${pdfBuffer.length} bytes`)
 
     // Devolver el PDF con headers básicos para visualización directa
-    return new NextResponse(pdfBuffer, {
+    return new Response(pdfBuffer, {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `inline; filename="${fileName}"`,
